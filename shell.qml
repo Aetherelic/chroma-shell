@@ -12,6 +12,7 @@ ShellRoot {
     property int tick: 0
     property bool drawerOpen: false
     property bool launcherOpen: false
+    property bool clipboardOpen: false
     property bool controlCenterOpen: false
     property bool notificationCenterOpen: false
     property bool themePanelOpen: false
@@ -99,6 +100,14 @@ ShellRoot {
     readonly property int spectrumWidth: styleTokens.spectrumWidth
     readonly property int spectrumHeight: styleTokens.spectrumHeight
     readonly property int spectrumGap: styleTokens.spectrumGap
+    readonly property int mediaProgressHeight:
+        styleTokens.mediaProgressHeight
+    readonly property int mediaProgressHorizontalInset:
+        styleTokens.mediaProgressHorizontalInset
+    readonly property int mediaProgressBottomInset:
+        styleTokens.mediaProgressBottomInset
+    readonly property int mediaProgressRadius:
+        styleTokens.mediaProgressRadius
     readonly property int utilityWidth: styleTokens.utilityWidth
     readonly property int utilityHoverWidth: styleTokens.utilityHoverWidth
     readonly property int clockWidth: styleTokens.clockWidth
@@ -188,6 +197,18 @@ ShellRoot {
 
     onLauncherOpenChanged: {
         if (launcherOpen) {
+            clipboardOpen = false
+            controlCenterOpen = false
+            notificationCenterOpen = false
+            themePanelOpen = false
+            settingsOpen = false
+        }
+    }
+
+    onClipboardOpenChanged: {
+        if (clipboardOpen) {
+            launcherOpen = false
+            drawerOpen = false
             controlCenterOpen = false
             notificationCenterOpen = false
             themePanelOpen = false
@@ -198,6 +219,7 @@ ShellRoot {
     onControlCenterOpenChanged: {
         if (controlCenterOpen) {
             launcherOpen = false
+            clipboardOpen = false
             drawerOpen = false
             notificationCenterOpen = false
             themePanelOpen = false
@@ -207,6 +229,7 @@ ShellRoot {
 
     onDrawerOpenChanged: {
         if (drawerOpen) {
+            clipboardOpen = false
             controlCenterOpen = false
             notificationCenterOpen = false
             themePanelOpen = false
@@ -217,6 +240,7 @@ ShellRoot {
     onNotificationCenterOpenChanged: {
         if (notificationCenterOpen) {
             launcherOpen = false
+            clipboardOpen = false
             controlCenterOpen = false
             drawerOpen = false
             themePanelOpen = false
@@ -227,6 +251,7 @@ ShellRoot {
     onThemePanelOpenChanged: {
         if (themePanelOpen) {
             launcherOpen = false
+            clipboardOpen = false
             controlCenterOpen = false
             drawerOpen = false
             notificationCenterOpen = false
@@ -237,6 +262,7 @@ ShellRoot {
     onSettingsOpenChanged: {
         if (settingsOpen) {
             launcherOpen = false
+            clipboardOpen = false
             controlCenterOpen = false
             drawerOpen = false
             notificationCenterOpen = false
@@ -456,6 +482,12 @@ ShellRoot {
         shell: root
     }
 
+    ClipboardPanel {
+        id: clipboardPanel
+        shell: root
+        settings: settingsStore
+    }
+
     ControlCentre {
         shell: root
     }
@@ -490,6 +522,15 @@ ShellRoot {
 
         onPressed:
             root.launcherOpen = !root.launcherOpen
+    }
+
+    GlobalShortcut {
+        appid: "chroma"
+        name: "clipboard"
+        description: "Toggle the CHROMA clipboard manager"
+
+        onPressed:
+            root.clipboardOpen = !root.clipboardOpen
     }
 
     GlobalShortcut {
@@ -533,6 +574,31 @@ ShellRoot {
 
         function toggleLauncher(): void {
             root.launcherOpen = !root.launcherOpen
+        }
+
+        function toggleClipboard(): void {
+            root.clipboardOpen = !root.clipboardOpen
+        }
+
+        function openClipboard(): void {
+            root.clipboardOpen = true
+        }
+
+        function closeClipboard(): void {
+            root.clipboardOpen = false
+        }
+
+        function clearClipboard(): void {
+            Quickshell.execDetached([
+                "bash",
+                Quickshell.shellPath("backend/chroma-clipboardctl"),
+                "clear"
+            ])
+        }
+
+        function setClipboardPrivate(enabled: bool): void {
+            settingsStore.clipboardPrivate = enabled
+            settingsStore.scheduleSave()
         }
 
         function toggleControl(): void {

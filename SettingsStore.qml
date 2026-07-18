@@ -53,6 +53,8 @@ Scope {
     // Launcher, notifications and OSD
     property int notificationTimeout: 6
     property int launcherResults: 6
+    property bool clipboardPrivate: false
+    property int clipboardLimit: 60
     property string osdPosition: "BOTTOM"
     property real osdDuration: 1.45
 
@@ -233,7 +235,7 @@ Scope {
         }
 
         settingsFile.setText(JSON.stringify({
-            version: 5,
+            version: 6,
             widgets: {
                 workspaces: showWorkspaces,
                 media: showMedia,
@@ -280,6 +282,10 @@ Scope {
             },
             launcher: {
                 results: launcherResults
+            },
+            clipboard: {
+                privateMode: clipboardPrivate,
+                limit: clipboardLimit
             },
             osd: {
                 position: osdPosition,
@@ -331,6 +337,8 @@ Scope {
 
         notificationTimeout = 6
         launcherResults = 6
+        clipboardPrivate = false
+        clipboardLimit = 60
         osdPosition = "BOTTOM"
         osdDuration = 1.45
 
@@ -373,6 +381,7 @@ Scope {
         var spectrum = data.spectrum || ({})
         var notifications = data.notifications || ({})
         var launcher = data.launcher || ({})
+        var clipboard = data.clipboard || ({})
         var osd = data.osd || ({})
         var apps = data.applications || ({})
 
@@ -478,6 +487,8 @@ Scope {
             3,
             10
         ))
+        clipboardPrivate = clipboard.privateMode === true
+        clipboardLimit = Math.round(clamp(clipboard.limit || 60, 20, 200))
         osdPosition = normaliseChoice(
             osd.position,
             ["TOP", "BOTTOM"],
