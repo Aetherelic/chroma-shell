@@ -11,24 +11,49 @@ Scope {
 
     property string query: ""
 
+    function isHidden(entry) {
+        return entry !== null
+            && shell.hiddenApplications.indexOf(entry.id) >= 0
+    }
+
+    function favoriteRank(entry) {
+        if (!entry) {
+            return 9999
+        }
+
+        var rank = shell.favoriteApplications.indexOf(entry.id)
+        return rank >= 0 ? rank : 9999
+    }
+
     property var filteredEntries: {
         var needle = query.trim().toLowerCase()
+        var results = []
 
         if (needle === "") {
-            return []
+            for (var favoriteIndex = 0;
+                 favoriteIndex < shell.favoriteApplications.length;
+                 favoriteIndex++) {
+                var favorite = DesktopEntries.byId(
+                    shell.favoriteApplications[favoriteIndex]
+                )
+
+                if (favorite && !isHidden(favorite)) {
+                    results.push(favorite)
+                }
+            }
+
+            return results.slice(0, shell.launcherResults)
         }
 
         var entries = DesktopEntries.applications.values
-        var results = []
 
         for (var index = 0; index < entries.length; index++) {
             var entry = entries[index]
 
-            if (!entry) {
+            if (!entry || isHidden(entry)) {
                 continue
             }
 
-            var name = (entry.name || "").toLowerCase()
             var searchable = (
                 (entry.name || "")
                 + " "
@@ -39,11 +64,9 @@ Scope {
                 + (entry.keywords || []).toString()
             ).toLowerCase()
 
-            if (searchable.indexOf(needle) < 0) {
-                continue
+            if (searchable.indexOf(needle) >= 0) {
+                results.push(entry)
             }
-
-            results.push(entry)
         }
 
         results.sort(function(left, right) {
@@ -53,6 +76,8 @@ Scope {
             var rightExact = rightName === needle
             var leftStarts = leftName.indexOf(needle) === 0
             var rightStarts = rightName.indexOf(needle) === 0
+            var leftFavorite = favoriteRank(left)
+            var rightFavorite = favoriteRank(right)
 
             if (leftExact !== rightExact) {
                 return leftExact ? -1 : 1
@@ -60,6 +85,10 @@ Scope {
 
             if (leftStarts !== rightStarts) {
                 return leftStarts ? -1 : 1
+            }
+
+            if (leftFavorite !== rightFavorite) {
+                return leftFavorite - rightFavorite
             }
 
             return leftName.localeCompare(rightName)
@@ -190,13 +219,9 @@ Scope {
                 id: spotlight
 
                 property int resultsHeight:
-                    component.query.length === 0
-                        ? 0
-                        : (
-                            component.filteredEntries.length > 0
-                                ? component.filteredEntries.length * 56 + 28
-                                : 64
-                        )
+                    component.filteredEntries.length > 0
+                        ? component.filteredEntries.length * 56 + 28
+                        : (component.query.length > 0 ? 64 : 0)
 
                 width: Math.min(760, launcherWindow.width - 80)
                 height: 74 + resultsHeight
@@ -358,7 +383,9 @@ Scope {
                     Rectangle {
                         Layout.fillWidth: true
                         Layout.preferredHeight: 1
-                        visible: component.query.length > 0
+                        visible:
+                            component.query.length > 0
+                            || component.filteredEntries.length > 0
                         color: shell.surfaceHover
                     }
 
@@ -369,9 +396,7 @@ Scope {
                         Layout.preferredHeight:
                             component.filteredEntries.length * 56
 
-                        visible:
-                            component.query.length > 0
-                            && component.filteredEntries.length > 0
+                        visible: component.filteredEntries.length > 0
 
                         model: appModel
                         currentIndex: -1
@@ -512,14 +537,14 @@ Scope {
                     RowLayout {
                         Layout.fillWidth: true
                         Layout.preferredHeight: 27
-                        visible:
-                            component.query.length > 0
-                            && component.filteredEntries.length > 0
+                        visible: component.filteredEntries.length > 0
 
                         Text {
                             text:
                                 component.filteredEntries.length
-                                + " RESULTS"
+                                + (component.query.length > 0
+                                    ? " RESULTS"
+                                    : " FAVOURITES")
                             color: shell.dim
                             font.family: "JetBrainsMono Nerd Font"
                             font.pixelSize: Math.round(8 * shell.fontScale)

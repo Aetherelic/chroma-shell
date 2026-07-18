@@ -13,8 +13,17 @@ display_config="$home/.config/hypr/conf.d/chroma-displays.conf"
 style_config="$home/.config/hypr/conf.d/chroma-style.conf"
 hyprland_config="$home/.config/hypr/hyprland.conf"
 pending_file="$display_root/pending"
+applications_root="$settings_root/applications"
+autostart_root="$home/.config/autostart"
+mimeapps_file="$home/.config/mimeapps.list"
+applications_backups="$applications_root/backups"
 
-mkdir -p "$settings_root" "$snapshots" "$display_root"
+mkdir -p \
+    "$settings_root" \
+    "$snapshots" \
+    "$display_root" \
+    "$applications_root" \
+    "$applications_backups"
 
 notify() {
     if command -v notify-send >/dev/null 2>&1; then
@@ -509,6 +518,297 @@ EOF
         "$preset" "$rounding" "$border_size"
 }
 
+
+json_result() {
+    local ok="$1"
+    local message="$2"
+
+    jq -n \
+        --argjson ok "$ok" \
+        --arg message "$message" \
+        '{ok:$ok,message:$message}'
+}
+
+normalise_desktop_id() {
+    local value="${1:-}"
+
+    value="$(basename -- "$value")"
+    if test -n "$value" && [[ "$value" != *.desktop ]]; then
+        value="${value}.desktop"
+    fi
+
+    printf '%s\n' "$value"
+}
+
+application_data_dirs() {
+    local path
+    local seen=':'
+    local defaults=(
+        "$home/.local/share"
+        "$home/.nix-profile/share"
+        "/etc/profiles/per-user/${USER:-$(id -un)}/share"
+        "/run/current-system/sw/share"
+        "/nix/var/nix/profiles/default/share"
+        "$home/.local/share/flatpak/exports/share"
+        "/var/lib/flatpak/exports/share"
+        "/usr/local/share"
+        "/usr/share"
+    )
+
+    IFS=':' read -r -a configured <<<"${XDG_DATA_DIRS:-}"
+
+    for path in "${defaults[@]}" "${configured[@]}"; do
+        test -n "$path" || continue
+        case "$seen" in
+            *:"$path":*)
+                continue
+                ;;
+        esac
+        seen="${seen}${path}:"
+        printf '%s\n' "$path"
+    done
+}
+
+locate_desktop_entry() {
+    local id
+    local data_dir candidate
+
+    id="$(normalise_desktop_id "${1:-}")"
+    test -n "$id" || return 1
+
+    while IFS= read -r data_dir; do
+        candidate="$data_dir/applications/$id"
+        if test -f "$candidate"; then
+            printf '%s\n' "$candidate"
+            return 0
+        fi
+    done < <(application_data_dirs)
+
+    return 1
+}
+
+backup_application_file() {
+    local source="$1"
+    local label="$2"
+    local stamp target
+
+    test -f "$source" || return 0
+
+    stamp="$(date +%Y%m%d-%H%M%S)-$$-$RANDOM"
+    target="$applications_backups/${stamp}-${label}"
+    cp -a "$source" "$target"
+}
+
+desktop_entry_enabled() {
+    local file="$1"
+
+    awk -F= '
+        BEGIN { hidden = "false"; enabled = "true" }
+        /^[[:space:]]*Hidden[[:space:]]*=/ {
+            value = tolower($2)
+            gsub(/[[:space:]]/, "", value)
+            hidden = value
+        }
+        /^[[:space:]]*X-GNOME-Autostart-enabled[[:space:]]*=/ {
+            value = tolower($2)
+            gsub(/[[:space:]]/, "", value)
+            enabled = value
+        }
+        END { exit ! (hidden != "true" && enabled != "false") }
+    ' "$file"
+}
+
+applications_json() {
+    local browser files editor autostart_json
+    local file id
+    local enabled=()
+
+    if command -v xdg-mime >/dev/null 2>&1; then
+        browser="$(xdg-mime query default text/html 2>/dev/null || true)"
+        files="$(xdg-mime query default inode/directory 2>/dev/null || true)"
+        editor="$(xdg-mime query default text/plain 2>/dev/null || true)"
+    else
+        browser=""
+        files=""
+        editor=""
+    fi
+
+    if test -d "$autostart_root"; then
+        while IFS= read -r -d '' file; do
+            if desktop_entry_enabled "$file"; then
+                id="$(basename -- "$file")"
+                enabled+=("$id")
+            fi
+        done < <(
+            find "$autostart_root" \
+                -maxdepth 1 \
+                -type f \
+                -name '*.desktop' \
+                -print0 \
+                2>/dev/null \
+                | sort -z
+        )
+    fi
+
+    if test "${#enabled[@]}" -gt 0; then
+        autostart_json="$(printf '%s\n' "${enabled[@]}" | jq -R -s 'split("\n") | map(select(length > 0))')"
+    else
+        autostart_json='[]'
+    fi
+
+    jq -n \
+        --arg browser "$browser" \
+        --arg files "$files" \
+        --arg editor "$editor" \
+        --arg mimeapps "$mimeapps_file" \
+        --argjson autostart "$autostart_json" \
+        '{ok:true,defaults:{browser:$browser,files:$files,editor:$editor},autostart:$autostart,mimeapps:$mimeapps}'
+}
+
+application_set_default() {
+    local role="${1:-}"
+    local requested_id="${2:-}"
+    local id source
+    local mime_types=()
+    local mime
+
+    id="$(normalise_desktop_id "$requested_id")"
+    source="$(locate_desktop_entry "$id" 2>/dev/null || true)"
+
+    if test -z "$id" || test -z "$source"; then
+        json_result false "DESKTOP ENTRY COULD NOT BE LOCATED"
+        return 1
+    fi
+
+    case "$role" in
+        terminal)
+            ;;
+        browser)
+            mime_types=(text/html x-scheme-handler/http x-scheme-handler/https)
+            ;;
+        files)
+            mime_types=(inode/directory)
+            ;;
+        editor)
+            mime_types=(text/plain)
+            ;;
+        *)
+            json_result false "UNKNOWN APPLICATION ROLE"
+            return 1
+            ;;
+    esac
+
+    if test "${#mime_types[@]}" -gt 0; then
+        if ! command -v xdg-mime >/dev/null 2>&1; then
+            json_result false "XDG MIME TOOLING IS UNAVAILABLE"
+            return 1
+        fi
+
+        mkdir -p "$(dirname "$mimeapps_file")"
+        backup_application_file "$mimeapps_file" "mimeapps.list"
+
+        for mime in "${mime_types[@]}"; do
+            if ! xdg-mime default "$id" "$mime" >/dev/null 2>&1; then
+                json_result false "DEFAULT APPLICATION COULD NOT BE UPDATED"
+                return 1
+            fi
+        done
+    fi
+
+    notify "${role^} application set to ${id%.desktop}"
+    json_result true "${role^^} DEFAULT UPDATED"
+}
+
+rewrite_autostart_flags() {
+    local source="$1"
+    local target="$2"
+    local enabled="$3"
+    local temporary
+
+    temporary="$(mktemp "${target}.tmp.XXXXXX")"
+
+    awk '
+        !/^[[:space:]]*Hidden[[:space:]]*=/ &&
+        !/^[[:space:]]*X-GNOME-Autostart-enabled[[:space:]]*=/ &&
+        !/^[[:space:]]*X-CHROMA-Managed[[:space:]]*=/ {
+            print
+        }
+    ' "$source" > "$temporary"
+
+    if test "$enabled" = "1"; then
+        printf '\nHidden=false\nX-GNOME-Autostart-enabled=true\n' >> "$temporary"
+    else
+        printf '\nHidden=true\nX-GNOME-Autostart-enabled=false\n' >> "$temporary"
+    fi
+    printf 'X-CHROMA-Managed=true\n' >> "$temporary"
+
+    chmod 0644 "$temporary"
+    mv "$temporary" "$target"
+}
+
+application_autostart_set() {
+    local requested_id="${1:-}"
+    local enabled="${2:-}"
+    local id source target input
+
+    if ! [[ "$enabled" =~ ^[01]$ ]]; then
+        json_result false "AUTOSTART VALUE FAILED VALIDATION"
+        return 1
+    fi
+
+    id="$(normalise_desktop_id "$requested_id")"
+    source="$(locate_desktop_entry "$id" 2>/dev/null || true)"
+    target="$autostart_root/$id"
+
+    if test -z "$id" || test -z "$source"; then
+        json_result false "DESKTOP ENTRY COULD NOT BE LOCATED"
+        return 1
+    fi
+
+    mkdir -p "$autostart_root"
+    backup_application_file "$target" "$id"
+
+    if test -f "$target"; then
+        input="$target"
+    else
+        input="$source"
+    fi
+
+    rewrite_autostart_flags "$input" "$target" "$enabled"
+
+    if test "$enabled" = "1"; then
+        notify "Autostart enabled for ${id%.desktop}"
+        json_result true "AUTOSTART ENABLED"
+    else
+        notify "Autostart disabled for ${id%.desktop}"
+        json_result true "AUTOSTART DISABLED"
+    fi
+}
+
+application_open_entry() {
+    local requested_id="${1:-}"
+    local id source target
+
+    id="$(normalise_desktop_id "$requested_id")"
+    source="$(locate_desktop_entry "$id" 2>/dev/null || true)"
+    target="$home/.local/share/applications/$id"
+
+    if test -z "$source"; then
+        json_result false "DESKTOP ENTRY COULD NOT BE LOCATED"
+        return 1
+    fi
+
+    mkdir -p "$(dirname "$target")"
+    if test "$source" != "$target" && ! test -f "$target"; then
+        cp -a "$source" "$target"
+        chmod u+w "$target" 2>/dev/null || true
+    fi
+
+    backup_application_file "$target" "$id"
+    open_file "$target"
+    json_result true "EDITABLE DESKTOP ENTRY OPENED"
+}
+
 case "${1:-help}" in
     style-sync)
         shift
@@ -549,6 +849,25 @@ case "${1:-help}" in
     display-focus)
         shift
         display_focus "$@"
+        ;;
+
+    applications-json)
+        applications_json
+        ;;
+
+    application-set-default)
+        shift
+        application_set_default "$@"
+        ;;
+
+    application-autostart-set)
+        shift
+        application_autostart_set "$@"
+        ;;
+
+    application-open-entry)
+        shift
+        application_open_entry "$@"
         ;;
 
     open-project)
@@ -643,7 +962,9 @@ case "${1:-help}" in
             'Usage: chroma-settingsctl {' \
             'style-sync|system-json|display-json|display-preview|display-keep|' \
             'display-revert|display-known-good|display-restore-known-good|' \
-            'display-focus|open-project|open-hyprland|open-nixos|' \
+            'display-focus|applications-json|application-set-default|' \
+            'application-autostart-set|application-open-entry|open-project|' \
+            'open-hyprland|open-nixos|' \
             'open-state|open-log|open-wallpaper|open-display-config|' \
             'reload-hyprland|restart-shell|health|snapshot|' \
             'copy-report|copy-monitors|open-backups}'

@@ -61,6 +61,12 @@ Scope {
     property string preferredBrowser: "chromium"
     property string preferredFiles: "thunar"
     property string preferredEditor: "code"
+    property string preferredTerminalId: ""
+    property string preferredBrowserId: ""
+    property string preferredFilesId: ""
+    property string preferredEditorId: ""
+    property var favoriteApplications: []
+    property var hiddenApplications: []
 
     readonly property string settingsPath:
         Quickshell.env("HOME") + "/.config/chroma/settings.json"
@@ -118,6 +124,24 @@ Scope {
     function normaliseChoice(value, choices, fallback) {
         var candidate = String(value || "").toUpperCase()
         return choices.indexOf(candidate) >= 0 ? candidate : fallback
+    }
+
+    function normaliseStringList(value, maximum) {
+        var result = []
+        var limit = Math.max(0, Number(maximum || 64))
+
+        if (!value || value.length === undefined) {
+            return result
+        }
+
+        for (var index = 0; index < value.length && result.length < limit; index++) {
+            var candidate = String(value[index] || "").trim()
+            if (candidate.length > 0 && result.indexOf(candidate) < 0) {
+                result.push(candidate)
+            }
+        }
+
+        return result
     }
 
     function styleProfile(preset) {
@@ -209,7 +233,7 @@ Scope {
         }
 
         settingsFile.setText(JSON.stringify({
-            version: 4,
+            version: 5,
             widgets: {
                 workspaces: showWorkspaces,
                 media: showMedia,
@@ -265,7 +289,13 @@ Scope {
                 terminal: preferredTerminal,
                 browser: preferredBrowser,
                 files: preferredFiles,
-                editor: preferredEditor
+                editor: preferredEditor,
+                terminalId: preferredTerminalId,
+                browserId: preferredBrowserId,
+                filesId: preferredFilesId,
+                editorId: preferredEditorId,
+                favorites: favoriteApplications,
+                hidden: hiddenApplications
             }
         }, null, 2) + "\n")
     }
@@ -308,6 +338,12 @@ Scope {
         preferredBrowser = "chromium"
         preferredFiles = "thunar"
         preferredEditor = "code"
+        preferredTerminalId = ""
+        preferredBrowserId = ""
+        preferredFilesId = ""
+        preferredEditorId = ""
+        favoriteApplications = []
+        hiddenApplications = []
 
         scheduleSave()
     }
@@ -453,6 +489,12 @@ Scope {
         preferredBrowser = apps.browser || "chromium"
         preferredFiles = apps.files || "thunar"
         preferredEditor = apps.editor || "code"
+        preferredTerminalId = String(apps.terminalId || "")
+        preferredBrowserId = String(apps.browserId || "")
+        preferredFilesId = String(apps.filesId || "")
+        preferredEditorId = String(apps.editorId || "")
+        favoriteApplications = normaliseStringList(apps.favorites, 12)
+        hiddenApplications = normaliseStringList(apps.hidden, 128)
 
         ready = true
         saveTimer.restart()
