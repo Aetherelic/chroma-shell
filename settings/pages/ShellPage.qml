@@ -115,8 +115,7 @@ Flickable {
                 current: settings.stylePreset
                 accent: shell.uiPalette[6]
                 onOptionSelected: value => {
-                    settings.stylePreset = value
-                    settings.scheduleSave()
+                    settings.selectStylePreset(value)
                 }
             }
 

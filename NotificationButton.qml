@@ -6,8 +6,10 @@ Rectangle {
 
     required property var shell
 
-    implicitWidth: buttonMouse.containsMouse ? 108 : 54
-    implicitHeight: 73
+    implicitWidth: buttonMouse.containsMouse
+        ? shell.utilityHoverWidth
+        : shell.utilityWidth
+    implicitHeight: shell.barHeight
 
     color: shell.notificationCenterOpen
         ? shell.uiPalette[0]
@@ -22,21 +24,21 @@ Rectangle {
         shell.notificationCenterOpen
         || buttonMouse.containsMouse
             ? 0
-            : 1
+            : shell.borderWidth
     border.color: shell.doNotDisturb
         ? shell.uiPalette[2]
         : shell.border
 
     Behavior on implicitWidth {
         NumberAnimation {
-            duration: 170
+            duration: shell.animationDuration
             easing.type: Easing.OutCubic
         }
     }
 
     Behavior on color {
         ColorAnimation {
-            duration: 150
+            duration: shell.animationDuration
         }
     }
 

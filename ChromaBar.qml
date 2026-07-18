@@ -51,8 +51,8 @@ Scope {
 
                     Layout.preferredWidth:
                         identityMouse.containsMouse
-                            ? 204
-                            : 178
+                            ? shell.identityHoverWidth
+                            : shell.identityWidth
 
                     Layout.fillHeight: true
 
@@ -78,8 +78,8 @@ Scope {
                     RowLayout {
                         anchors {
                             fill: parent
-                            leftMargin: 14
-                            rightMargin: 12
+                            leftMargin: shell.identityHorizontalPadding
+                            rightMargin: shell.identityHorizontalPadding
                         }
 
                         Column {
@@ -165,157 +165,165 @@ Scope {
                     border.color: shell.border
 
                     Row {
-                        anchors.centerIn: parent
-                        spacing: 6
+                        anchors {
+                            fill: parent
+                            leftMargin: shell.workspaceRailPadding
+                            rightMargin: shell.workspaceRailPadding
+                        }
+                        spacing: shell.workspaceGap
 
                         Repeater {
                             model: shell.workspaceCount
 
-                            Rectangle {
-                                id: workspaceButton
+                            Item {
+                                id: workspaceSlot
 
                                 required property int index
 
-                                property int number: index + 1
-
-                                property var workspaceObject:
-                                    shell.workspaceFor(number)
-
-                                property bool active:
-                                    Hyprland.focusedWorkspace !== null
-                                    && Hyprland
-                                        .focusedWorkspace
-                                        .id === number
-
-                                property bool occupied:
-                                    workspaceObject !== null
-                                    && workspaceObject
-                                        .toplevels
-                                        .values
-                                        .length > 0
-
-                                width:
-                                    shell.workspaceStyle === "DOTS"
-                                        ? (active ? 22 : 14)
-                                        : active
-                                            ? 50
-                                            : (workspaceMouse.containsMouse ? 43 : 35)
-
-                                height:
-                                    shell.workspaceStyle === "DOTS"
-                                        ? width
-                                        : active ? 53 : 39
-                                radius: shell.workspaceRadius
-
-                                color:
-                                    active
-                                        ? shell.uiPalette[index % shell.uiPalette.length]
-                                        : (
-                                            workspaceMouse
-                                                .containsMouse
-                                                    ? shell.surfaceHover
-                                                    : shell.surface
-                                        )
-
-                                border.width: active ? 0 : shell.borderWidth
-                                border.color: shell.borderStrong
-
-                                Behavior on width {
-                                    NumberAnimation {
-                                        duration: shell.animationDuration
-                                        easing.type:
-                                            Easing.OutCubic
-                                    }
-                                }
-
-                                Behavior on height {
-                                    NumberAnimation {
-                                        duration: shell.animationDuration
-                                        easing.type:
-                                            Easing.OutCubic
-                                    }
-                                }
-
-                                Behavior on color {
-                                    ColorAnimation {
-                                        duration: 140
-                                    }
-                                }
-
-                                Text {
-                                    anchors.centerIn: parent
-                                    visible: shell.workspaceStyle !== "DOTS"
-
-                                    text:
-                                        workspaceButton.number < 10
-                                            ? (
-                                                "0"
-                                                + workspaceButton
-                                                    .number
-                                            )
-                                            : workspaceButton.number
-
-                                    color:
-                                        workspaceButton.active
-                                            ? shell.ink
-                                            : shell.text
-
-                                    font.family:
-                                        "JetBrainsMono Nerd Font"
-
-                                    font.pixelSize: Math.round(10 * shell.fontScale)
-                                    font.weight: Font.Black
-                                }
+                                width: shell.workspaceSlotWidth
+                                height: parent.height
 
                                 Rectangle {
-                                    visible: shell.workspaceStyle !== "DOTS"
-                                    anchors {
-                                        bottom: parent.bottom
-                                        horizontalCenter:
-                                            parent.horizontalCenter
-                                        bottomMargin: 4
-                                    }
+                                    id: workspaceButton
+
+                                    property int number: workspaceSlot.index + 1
+
+                                    property var workspaceObject:
+                                        shell.workspaceFor(number)
+
+                                    property bool active:
+                                        Hyprland.focusedWorkspace !== null
+                                        && Hyprland.focusedWorkspace.id === number
+
+                                    property bool occupied:
+                                        workspaceObject !== null
+                                        && workspaceObject.toplevels.values.length > 0
+
+                                    anchors.centerIn: parent
 
                                     width:
-                                        workspaceButton.occupied
-                                            ? 12
-                                            : 3
+                                        active
+                                            ? shell.workspaceActiveWidth
+                                            : workspaceMouse.containsMouse
+                                                ? shell.workspaceHoverWidth
+                                                : shell.workspaceButtonWidth
 
-                                    height: 2
-                                    radius: shell.controlRadius
+                                    height:
+                                        active
+                                            ? shell.workspaceActiveHeight
+                                            : shell.workspaceButtonHeight
+
+                                    radius: shell.workspaceRadius
 
                                     color:
-                                        workspaceButton.active
-                                            ? shell.ink
-                                            : shell.uiPalette[
-                                                workspaceButton.index
+                                        active
+                                            ? shell.uiPalette[
+                                                workspaceSlot.index
+                                                % shell.uiPalette.length
                                             ]
+                                            : workspaceMouse.containsMouse
+                                                ? shell.surfaceHover
+                                                : shell.surface
 
-                                    opacity:
-                                        workspaceButton.occupied
-                                            ? 1
-                                            : 0.25
+                                    border.width:
+                                        active ? 0 : shell.borderWidth
+                                    border.color: shell.borderStrong
 
                                     Behavior on width {
                                         NumberAnimation {
                                             duration: shell.animationDuration
+                                            easing.type: Easing.OutCubic
                                         }
                                     }
-                                }
 
-                                MouseArea {
-                                    id: workspaceMouse
+                                    Behavior on height {
+                                        NumberAnimation {
+                                            duration: shell.animationDuration
+                                            easing.type: Easing.OutCubic
+                                        }
+                                    }
 
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    cursorShape:
-                                        Qt.PointingHandCursor
+                                    Behavior on color {
+                                        ColorAnimation {
+                                            duration: shell.animationDuration
+                                        }
+                                    }
 
-                                    onClicked:
-                                        Hyprland.dispatch(
-                                            "workspace "
-                                            + workspaceButton.number
+                                    Text {
+                                        anchors.centerIn: parent
+                                        visible: shell.workspaceStyle !== "DOTS"
+
+                                        text:
+                                            workspaceButton.number < 10
+                                                ? "0" + workspaceButton.number
+                                                : workspaceButton.number
+
+                                        color:
+                                            workspaceButton.active
+                                                ? shell.ink
+                                                : shell.text
+
+                                        font.family: "JetBrainsMono Nerd Font"
+                                        font.pixelSize: Math.round(
+                                            10 * shell.fontScale
                                         )
+                                        font.weight: Font.Black
+                                    }
+
+                                    Rectangle {
+                                        visible: shell.workspaceStyle !== "DOTS"
+                                        anchors {
+                                            bottom: parent.bottom
+                                            horizontalCenter:
+                                                parent.horizontalCenter
+                                            bottomMargin: Math.max(3, Math.round(
+                                                shell.barHeight * 0.055
+                                            ))
+                                        }
+
+                                        width:
+                                            workspaceButton.occupied
+                                                ? Math.max(8, Math.round(
+                                                    workspaceButton.width * 0.30
+                                                ))
+                                                : Math.max(2, Math.round(
+                                                    workspaceButton.width * 0.08
+                                                ))
+
+                                        height: Math.max(2, shell.borderWidth)
+                                        radius: shell.microRadius
+
+                                        color:
+                                            workspaceButton.active
+                                                ? shell.ink
+                                                : shell.uiPalette[
+                                                    workspaceSlot.index
+                                                    % shell.uiPalette.length
+                                                ]
+
+                                        opacity:
+                                            workspaceButton.occupied ? 1 : 0.25
+
+                                        Behavior on width {
+                                            NumberAnimation {
+                                                duration: shell.animationDuration
+                                            }
+                                        }
+                                    }
+
+                                    MouseArea {
+                                        id: workspaceMouse
+
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor
+
+                                        onClicked:
+                                            Hyprland.dispatch(
+                                                "workspace "
+                                                + workspaceButton.number
+                                            )
+                                    }
                                 }
                             }
                         }
@@ -389,28 +397,18 @@ Scope {
                     RowLayout {
                         anchors {
                             fill: parent
-                            leftMargin: 18
-                            rightMargin: 14
-                            bottomMargin: 4
+                            leftMargin: shell.mediaHorizontalPadding
+                            rightMargin: shell.mediaHorizontalPadding
+                            bottomMargin: Math.max(2, shell.borderWidth * 2)
                         }
 
-                        spacing: 12
+                        spacing: shell.mediaContentGap
 
                         Rectangle {
                             id: compactAlbumArt
 
-                            Layout.preferredWidth:
-                                shell.density === "COMPACT"
-                                    ? Math.round(38 * shell.iconScale)
-                                    : shell.density === "SPACIOUS"
-                                        ? Math.round(50 * shell.iconScale)
-                                        : Math.round(44 * shell.iconScale)
-                            Layout.preferredHeight:
-                                shell.density === "COMPACT"
-                                    ? Math.round(38 * shell.iconScale)
-                                    : shell.density === "SPACIOUS"
-                                        ? Math.round(50 * shell.iconScale)
-                                        : Math.round(44 * shell.iconScale)
+                            Layout.preferredWidth: shell.albumArtSize
+                            Layout.preferredHeight: shell.albumArtSize
                             Layout.alignment: Qt.AlignVCenter
 
                             visible: shell.hasMedia && shell.showAlbumArt
@@ -491,14 +489,8 @@ Scope {
                         SpectrumBars {
                             visible: shell.showSpectrum
                             Layout.preferredWidth:
-                                shell.showSpectrum
-                                    ? shell.density === "COMPACT"
-                                        ? 150
-                                        : shell.density === "SPACIOUS"
-                                            ? 226
-                                            : 193
-                                    : 0
-                            Layout.preferredHeight: 40
+                                shell.showSpectrum ? shell.spectrumWidth : 0
+                            Layout.preferredHeight: shell.spectrumHeight
                             Layout.alignment: Qt.AlignVCenter
 
                             values: shell.spectrumValues
@@ -515,7 +507,7 @@ Scope {
                                     / Math.max(1, values.length)
                                 )
                             )
-                            barSpacing: shell.density === "COMPACT" ? 2 : 3
+                            barSpacing: shell.spectrumGap
                             minimumBarHeight: 2
                         }
                     }
@@ -566,8 +558,8 @@ Scope {
                     visible: shell.showControl
                     Layout.preferredWidth:
                         controlMouse.containsMouse
-                            ? 108
-                            : 54
+                            ? shell.utilityHoverWidth
+                            : shell.utilityWidth
 
                     Layout.fillHeight: true
 
@@ -582,7 +574,7 @@ Scope {
                         shell.controlCenterOpen
                         || controlMouse.containsMouse
                             ? 0
-                            : 1
+                            : shell.borderWidth
                     border.color: shell.border
 
                     Behavior on Layout.preferredWidth {
@@ -669,7 +661,7 @@ Scope {
                  */
                 Rectangle {
                     visible: shell.showClock
-                    Layout.preferredWidth: 162
+                    Layout.preferredWidth: shell.clockWidth
                     Layout.fillHeight: true
 
                     color:
@@ -689,8 +681,8 @@ Scope {
                     RowLayout {
                         anchors {
                             fill: parent
-                            leftMargin: 13
-                            rightMargin: 12
+                            leftMargin: shell.clockHorizontalPadding
+                            rightMargin: shell.clockHorizontalPadding
                         }
 
                         Column {
@@ -740,7 +732,7 @@ Scope {
 
                         Rectangle {
                             width: 9
-                            height: 38
+                            height: shell.clockSignalHeight
                             radius: shell.controlRadius
                             color: shell.ink
                         }
