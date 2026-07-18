@@ -1,0 +1,359 @@
+import QtQuick
+import Quickshell
+import Quickshell.Io
+
+Scope {
+    id: store
+
+    required property var shell
+
+    property bool ready: false
+
+    // Bar composition
+    property bool showWorkspaces: true
+    property bool showMedia: true
+    property bool showAlbumArt: true
+    property bool showSpectrum: true
+    property bool showNotifications: true
+    property bool showThemes: true
+    property bool showControl: true
+    property bool showClock: true
+    property bool showDate: true
+    property bool showOsd: true
+    property bool showNotificationToasts: true
+
+    // Layout and behaviour
+    property int workspaceCount: 6
+    property string density: "BALANCED"
+    property string barMonitor: "DP-1"
+    property string barPosition: "BOTTOM"
+    property string animationSpeed: "BALANCED"
+    property string clockFormat: "24H"
+    property string dateFormat: "SHORT"
+
+    // CHROMA/04 Style Studio
+    property string stylePreset: "SHARP"
+    property string colorTreatment: "FULL PALETTE"
+    property string workspaceStyle: "BLOCKS"
+    property int barHeight: 73
+    property int outerMargin: 14
+    property int moduleGap: 8
+    property int mediaModuleWidth: 600
+    property int borderThickness: 1
+    property real fontScale: 1.0
+    property real iconScale: 1.0
+    property int panelPadding: 18
+
+    // Media / CAVA
+    property int spectrumBars: 28
+    property real spectrumSensitivity: 1.0
+    property real spectrumSmoothing: 0.28
+    property string spectrumMode: "THEME"
+
+    // Launcher, notifications and OSD
+    property int notificationTimeout: 6
+    property int launcherResults: 6
+    property string osdPosition: "BOTTOM"
+    property real osdDuration: 1.45
+
+    // Preferred apps
+    property string preferredTerminal: "kitty"
+    property string preferredBrowser: "chromium"
+    property string preferredFiles: "thunar"
+    property string preferredEditor: "code"
+
+    readonly property string settingsPath:
+        Quickshell.env("HOME") + "/.config/chroma/settings.json"
+
+    FileView {
+        id: settingsFile
+        path: store.settingsPath
+        blockLoading: true
+        atomicWrites: true
+        printErrors: true
+    }
+
+    FileView {
+        id: legacyFile
+        path: Quickshell.statePath("settings-ui.json")
+        blockLoading: true
+        atomicWrites: false
+        printErrors: false
+    }
+
+    Timer {
+        id: saveTimer
+        interval: 140
+        repeat: false
+        onTriggered: store.save()
+    }
+
+    function clamp(value, minimum, maximum) {
+        return Math.max(minimum, Math.min(maximum, Number(value)))
+    }
+
+    function normaliseChoice(value, choices, fallback) {
+        var candidate = String(value || "").toUpperCase()
+        return choices.indexOf(candidate) >= 0 ? candidate : fallback
+    }
+
+    function scheduleSave() {
+        if (ready) {
+            saveTimer.restart()
+        }
+    }
+
+    function save() {
+        if (!ready) {
+            return
+        }
+
+        settingsFile.setText(JSON.stringify({
+            version: 3,
+            widgets: {
+                workspaces: showWorkspaces,
+                media: showMedia,
+                albumArt: showAlbumArt,
+                spectrum: showSpectrum,
+                notifications: showNotifications,
+                themes: showThemes,
+                control: showControl,
+                clock: showClock,
+                date: showDate,
+                osd: showOsd,
+                notificationToasts: showNotificationToasts
+            },
+            layout: {
+                workspaceCount: workspaceCount,
+                density: density,
+                barMonitor: barMonitor,
+                barPosition: barPosition,
+                animationSpeed: animationSpeed,
+                clockFormat: clockFormat,
+                dateFormat: dateFormat
+            },
+            style: {
+                preset: stylePreset,
+                colorTreatment: colorTreatment,
+                workspaceStyle: workspaceStyle,
+                barHeight: barHeight,
+                outerMargin: outerMargin,
+                moduleGap: moduleGap,
+                mediaWidth: mediaModuleWidth,
+                borderThickness: borderThickness,
+                fontScale: fontScale,
+                iconScale: iconScale,
+                panelPadding: panelPadding
+            },
+            spectrum: {
+                bars: spectrumBars,
+                sensitivity: spectrumSensitivity,
+                smoothing: spectrumSmoothing,
+                mode: spectrumMode
+            },
+            notifications: {
+                timeout: notificationTimeout
+            },
+            launcher: {
+                results: launcherResults
+            },
+            osd: {
+                position: osdPosition,
+                duration: osdDuration
+            },
+            applications: {
+                terminal: preferredTerminal,
+                browser: preferredBrowser,
+                files: preferredFiles,
+                editor: preferredEditor
+            }
+        }, null, 2) + "\n")
+    }
+
+    function resetDefaults() {
+        showWorkspaces = true
+        showMedia = true
+        showAlbumArt = true
+        showSpectrum = true
+        showNotifications = true
+        showThemes = true
+        showControl = true
+        showClock = true
+        showDate = true
+        showOsd = true
+        showNotificationToasts = true
+
+        workspaceCount = 6
+        density = "BALANCED"
+        barMonitor = "DP-1"
+        barPosition = "BOTTOM"
+        animationSpeed = "BALANCED"
+        clockFormat = "24H"
+        dateFormat = "SHORT"
+
+        stylePreset = "SHARP"
+        colorTreatment = "FULL PALETTE"
+        workspaceStyle = "BLOCKS"
+        barHeight = 73
+        outerMargin = 14
+        moduleGap = 8
+        mediaModuleWidth = 600
+        borderThickness = 1
+        fontScale = 1.0
+        iconScale = 1.0
+        panelPadding = 18
+
+        spectrumBars = 28
+        spectrumSensitivity = 1.0
+        spectrumSmoothing = 0.28
+        spectrumMode = "THEME"
+
+        notificationTimeout = 6
+        launcherResults = 6
+        osdPosition = "BOTTOM"
+        osdDuration = 1.45
+
+        preferredTerminal = "kitty"
+        preferredBrowser = "chromium"
+        preferredFiles = "thunar"
+        preferredEditor = "code"
+
+        scheduleSave()
+    }
+
+    Component.onCompleted: {
+        var data = ({})
+        var raw = settingsFile.text()
+
+        if (!raw || raw.trim().length === 0) {
+            raw = legacyFile.text()
+        }
+
+        if (raw && raw.trim().length > 0) {
+            try {
+                data = JSON.parse(raw)
+            } catch (error) {
+                console.warn("CHROMA settings were invalid; defaults restored")
+            }
+        }
+
+        var widgets = data.widgets || ({})
+        var layout = data.layout || data
+        var style = data.style || ({})
+        var spectrum = data.spectrum || ({})
+        var notifications = data.notifications || ({})
+        var launcher = data.launcher || ({})
+        var osd = data.osd || ({})
+        var apps = data.applications || ({})
+
+        showWorkspaces = widgets.workspaces !== false
+        showMedia = widgets.media !== false
+        showAlbumArt = widgets.albumArt !== false
+        showSpectrum = widgets.spectrum !== false
+        showNotifications = widgets.notifications !== false
+        showThemes = widgets.themes !== false
+        showControl = widgets.control !== false
+        showClock = widgets.clock !== false
+        showDate = widgets.date !== false
+        showOsd = widgets.osd !== false
+        showNotificationToasts = widgets.notificationToasts !== false
+
+        workspaceCount = Math.round(clamp(layout.workspaceCount || 6, 1, 10))
+        density = normaliseChoice(
+            layout.density,
+            ["COMPACT", "BALANCED", "SPACIOUS"],
+            "BALANCED"
+        )
+        barMonitor = String(layout.barMonitor || "DP-1")
+        barPosition = normaliseChoice(
+            layout.barPosition,
+            ["TOP", "BOTTOM"],
+            "BOTTOM"
+        )
+        animationSpeed = normaliseChoice(
+            layout.animationSpeed,
+            ["FAST", "BALANCED", "CINEMATIC"],
+            "BALANCED"
+        )
+        clockFormat = normaliseChoice(
+            layout.clockFormat,
+            ["12H", "24H"],
+            "24H"
+        )
+        dateFormat = normaliseChoice(
+            layout.dateFormat,
+            ["SHORT", "ISO", "VERBOSE"],
+            "SHORT"
+        )
+
+        stylePreset = normaliseChoice(
+            style.preset,
+            ["SHARP", "TECHNICAL", "SOFT", "CAPSULE", "HYBRID"],
+            "SHARP"
+        )
+        colorTreatment = normaliseChoice(
+            style.colorTreatment,
+            ["FULL PALETTE", "ACCENT ONLY", "DUOTONE", "MONOCHROME", "SPECTRUM", "MUTED"],
+            "FULL PALETTE"
+        )
+        workspaceStyle = normaliseChoice(
+            style.workspaceStyle,
+            ["BLOCKS", "PILLS", "DOTS"],
+            "BLOCKS"
+        )
+        barHeight = Math.round(clamp(style.barHeight || 73, 56, 92))
+        outerMargin = Math.round(clamp(
+            style.outerMargin !== undefined ? style.outerMargin : 14,
+            0,
+            28
+        ))
+        moduleGap = Math.round(clamp(style.moduleGap || 8, 2, 18))
+        mediaModuleWidth = Math.round(clamp(style.mediaWidth || 600, 420, 760))
+        borderThickness = Math.round(clamp(
+            style.borderThickness !== undefined ? style.borderThickness : 1,
+            0,
+            3
+        ))
+        fontScale = clamp(style.fontScale || 1.0, 0.85, 1.25)
+        iconScale = clamp(style.iconScale || 1.0, 0.80, 1.30)
+        panelPadding = Math.round(clamp(style.panelPadding || 18, 10, 30))
+
+        spectrumBars = Math.round(clamp(spectrum.bars || 28, 12, 40))
+        spectrumSensitivity = clamp(spectrum.sensitivity || 1.0, 0.5, 2.0)
+        spectrumSmoothing = clamp(
+            spectrum.smoothing !== undefined ? spectrum.smoothing : 0.28,
+            0.05,
+            0.85
+        )
+        spectrumMode = normaliseChoice(
+            spectrum.mode,
+            ["THEME", "ACCENT", "DUOTONE", "RAINBOW", "FREQUENCY", "MONOCHROME"],
+            "THEME"
+        )
+
+        notificationTimeout = Math.round(clamp(
+            notifications.timeout || data.notificationTimeout || 6,
+            2,
+            20
+        ))
+        launcherResults = Math.round(clamp(
+            launcher.results || data.launcherResults || 6,
+            3,
+            10
+        ))
+        osdPosition = normaliseChoice(
+            osd.position,
+            ["TOP", "BOTTOM"],
+            "BOTTOM"
+        )
+        osdDuration = clamp(osd.duration || 1.45, 0.6, 4.0)
+
+        preferredTerminal = apps.terminal || "kitty"
+        preferredBrowser = apps.browser || "chromium"
+        preferredFiles = apps.files || "thunar"
+        preferredEditor = apps.editor || "code"
+
+        ready = true
+        saveTimer.restart()
+    }
+}

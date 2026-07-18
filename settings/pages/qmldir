@@ -1,0 +1,9 @@
+WifiPage 1.0 WifiPage.qml
+BluetoothPage 1.0 BluetoothPage.qml
+DisplayPage 1.0 DisplayPage.qml
+WidgetsPage 1.0 WidgetsPage.qml
+ApplicationsPage 1.0 ApplicationsPage.qml
+ConfigPage 1.0 ConfigPage.qml
+ShellPage 1.0 ShellPage.qml
+AboutPage 1.0 AboutPage.qml
+CreditsPage 1.0 CreditsPage.qml

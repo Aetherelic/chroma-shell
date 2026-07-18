@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+config="${1:-$HOME/Projects/chroma-shell/cava.conf}"
+
+if command -v cava >/dev/null 2>&1; then
+    exec cava -p "$config"
+fi
+
+fallback="$HOME/.local/share/chroma-shell/cava/bin/cava"
+
+if test -x "$fallback"; then
+    exec "$fallback" -p "$config"
+fi
+
+printf 'CHROMA: CAVA is not installed.\n' >&2
+exit 127

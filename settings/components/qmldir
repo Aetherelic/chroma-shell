@@ -1,0 +1,10 @@
+SettingsButton 1.0 SettingsButton.qml
+SettingsToggle 1.0 SettingsToggle.qml
+SettingsCard 1.0 SettingsCard.qml
+SettingsTextField 1.0 SettingsTextField.qml
+InfoRow 1.0 InfoRow.qml
+PageHeader 1.0 PageHeader.qml
+
+SettingsStepper 1.0 SettingsStepper.qml
+SettingsChoice 1.0 SettingsChoice.qml
+SettingsCycle 1.0 SettingsCycle.qml
