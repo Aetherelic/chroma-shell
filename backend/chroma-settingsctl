@@ -17,13 +17,20 @@ applications_root="$settings_root/applications"
 autostart_root="$home/.config/autostart"
 mimeapps_file="$home/.config/mimeapps.list"
 applications_backups="$applications_root/backups"
+config_root="$settings_root/config"
+config_restore_root="$config_root/restore"
+settings_file="$home/.config/chroma/settings.json"
+wallpaper_root="$home/.config/chroma-wallpaper"
+preview_log="$state/preview.log"
 
 mkdir -p \
     "$settings_root" \
     "$snapshots" \
     "$display_root" \
     "$applications_root" \
-    "$applications_backups"
+    "$applications_backups" \
+    "$config_root" \
+    "$config_restore_root"
 
 notify() {
     if command -v notify-send >/dev/null 2>&1; then
@@ -106,6 +113,9 @@ report() {
 
     printf '\n=== MONITORS ===\n'
     hyprctl monitors all -j 2>/dev/null | jq . 2>/dev/null || true
+
+    printf '\n=== CONFIGURATION ===\n'
+    config_status_json | jq . 2>/dev/null || config_status_json
 }
 
 ensure_display_source() {
@@ -809,6 +819,574 @@ application_open_entry() {
     json_result true "EDITABLE DESKTOP ENTRY OPENED"
 }
 
+safe_label() {
+    local value="${1:-snapshot}"
+
+    value="$(printf '%s' "$value" \
+        | tr '[:upper:]' '[:lower:]' \
+        | sed -E 's/[^a-z0-9._-]+/-/g; s/^-+//; s/-+$//; s/-+/-/g')"
+
+    printf '%s\n' "${value:-snapshot}"
+}
+
+snapshot_path_for_id() {
+    local id="${1:-}"
+
+    if test -z "$id" \
+        || test "$id" != "$(basename -- "$id")" \
+        || [[ "$id" != *.tar.gz ]]
+    then
+        return 1
+    fi
+
+    printf '%s/%s\n' "$snapshots" "$id"
+}
+
+snapshot_validate_archive() {
+    local archive="${1:-}"
+    local member_list verbose_list manifest archive_size
+
+    test -f "$archive" || return 1
+
+    archive_size="$(stat -c '%s' "$archive" 2>/dev/null || printf '0')"
+    if test "$archive_size" -le 0 || test "$archive_size" -gt 536870912; then
+        return 1
+    fi
+
+    member_list="$(mktemp "$config_root/members.XXXXXX")"
+    verbose_list="$(mktemp "$config_root/verbose.XXXXXX")"
+
+    if ! tar -tzf "$archive" > "$member_list" 2>/dev/null \
+        || ! tar -tvzf "$archive" > "$verbose_list" 2>/dev/null
+    then
+        rm -f "$member_list" "$verbose_list"
+        return 1
+    fi
+
+    if awk '
+        /^\// { bad = 1 }
+        /(^|\/)\.\.($|\/)/ { bad = 1 }
+        $0 != "manifest.json" && $0 !~ /^payload(\/|$)/ { bad = 1 }
+        END { exit bad ? 0 : 1 }
+    ' "$member_list"
+    then
+        rm -f "$member_list" "$verbose_list"
+        return 1
+    fi
+
+    if awk '
+        substr($1, 1, 1) == "l" || substr($1, 1, 1) == "h" { bad = 1 }
+        END { exit bad ? 0 : 1 }
+    ' "$verbose_list"
+    then
+        rm -f "$member_list" "$verbose_list"
+        return 1
+    fi
+
+    manifest="$(tar -xOzf "$archive" manifest.json 2>/dev/null || true)"
+    rm -f "$member_list" "$verbose_list"
+
+    jq -e '
+        type == "object"
+        and .type == "chroma-snapshot"
+        and .schema == 1
+        and (.createdAt | type == "string")
+    ' >/dev/null 2>&1 <<<"$manifest"
+}
+
+snapshot_create() {
+    local label="${1:-manual}"
+    local stamp slug archive temporary staging payload created branch commit
+    local entry basename_value
+
+    stamp="$(date +%Y%m%d-%H%M%S)"
+    slug="$(safe_label "$label")"
+    archive="$snapshots/chroma-${slug}-${stamp}.tar.gz"
+    temporary="${archive}.tmp.$$"
+    staging="$(mktemp -d "$config_root/snapshot.XXXXXX")"
+    payload="$staging/payload"
+    created="$(date --iso-8601=seconds)"
+
+    mkdir -p \
+        "$payload/Projects/chroma-shell" \
+        "$payload/.config/hypr/conf.d" \
+        "$payload/.local/share/chroma-settings" \
+        "$payload/.local/bin"
+
+    if ! tar -C "$project" \
+        --exclude='./.git' \
+        --exclude='./.qmlls.ini' \
+        --exclude='./backups' \
+        --exclude='./result' \
+        --exclude='./result-*' \
+        --exclude='./.cache' \
+        --exclude='*.bak' \
+        --exclude='*.bak.*' \
+        --exclude='*.broken' \
+        --exclude='*.broken.*' \
+        -cf - . 2>/dev/null \
+        | tar -C "$payload/Projects/chroma-shell" -xf -
+    then
+        rm -rf "$staging"
+        return 1
+    fi
+
+    if test -d "$home/.config/chroma"; then
+        mkdir -p "$payload/.config"
+        cp -a "$home/.config/chroma" "$payload/.config/"
+    fi
+
+    if test -d "$home/.config/chroma-wallpaper"; then
+        mkdir -p "$payload/.config"
+        cp -a "$home/.config/chroma-wallpaper" "$payload/.config/"
+    fi
+
+    if test -d "$home/.config/hypr/conf.d"; then
+        find "$home/.config/hypr/conf.d" \
+            -maxdepth 1 \
+            -type f \
+            -name 'chroma-*.conf' \
+            -exec cp -a {} "$payload/.config/hypr/conf.d/" \;
+    fi
+
+    if test -d "$settings_root"; then
+        while IFS= read -r -d '' entry; do
+            basename_value="$(basename -- "$entry")"
+            case "$basename_value" in
+                snapshots|config)
+                    continue
+                    ;;
+            esac
+            cp -a "$entry" "$payload/.local/share/chroma-settings/"
+        done < <(find "$settings_root" -mindepth 1 -maxdepth 1 -print0)
+    fi
+
+    if test -d "$home/.local/bin"; then
+        find "$home/.local/bin" \
+            -maxdepth 1 \
+            -type f \
+            -name 'chroma-*' \
+            -exec cp -a {} "$payload/.local/bin/" \;
+    fi
+
+    branch="$(git -C "$project" branch --show-current 2>/dev/null || true)"
+    commit="$(git -C "$project" rev-parse --short HEAD 2>/dev/null || true)"
+
+    jq -n \
+        --arg type "chroma-snapshot" \
+        --argjson schema 1 \
+        --arg id "$(basename -- "$archive")" \
+        --arg label "$label" \
+        --arg createdAt "$created" \
+        --arg hostname "$(hostname 2>/dev/null || printf unknown)" \
+        --arg branch "$branch" \
+        --arg commit "$commit" \
+        '{type:$type,schema:$schema,id:$id,label:$label,createdAt:$createdAt,hostname:$hostname,git:{branch:$branch,commit:$commit}}' \
+        > "$staging/manifest.json"
+
+    if ! tar -czf "$temporary" -C "$staging" manifest.json payload; then
+        rm -rf "$staging"
+        rm -f "$temporary"
+        return 1
+    fi
+
+    mv "$temporary" "$archive"
+    rm -rf "$staging"
+    printf '%s\n' "$archive"
+}
+
+snapshots_json() {
+    local archive manifest size modified valid
+    local rows
+
+    rows="$(mktemp "$config_root/snapshots.XXXXXX")"
+
+    while IFS= read -r -d '' archive; do
+        size="$(stat -c '%s' "$archive" 2>/dev/null || printf '0')"
+        modified="$(date -d "@$(stat -c '%Y' "$archive" 2>/dev/null || printf '0')" --iso-8601=seconds 2>/dev/null || true)"
+
+        if snapshot_validate_archive "$archive"; then
+            valid=true
+            manifest="$(tar -xOzf "$archive" manifest.json 2>/dev/null)"
+            jq -c \
+                --arg id "$(basename -- "$archive")" \
+                --argjson size "$size" \
+                --arg modifiedAt "$modified" \
+                '. + {id:$id,size:$size,modifiedAt:$modifiedAt,valid:true}' \
+                <<<"$manifest" >> "$rows"
+        else
+            valid=false
+            jq -nc \
+                --arg id "$(basename -- "$archive")" \
+                --argjson size "$size" \
+                --arg modifiedAt "$modified" \
+                '{id:$id,label:"INVALID ARCHIVE",createdAt:$modifiedAt,modifiedAt:$modifiedAt,size:$size,valid:false,git:{branch:"",commit:""}}' \
+                >> "$rows"
+        fi
+    done < <(
+        find "$snapshots" \
+            -maxdepth 1 \
+            -type f \
+            -name '*.tar.gz' \
+            -print0 \
+            2>/dev/null \
+            | sort -z -r
+    )
+
+    jq -s '.' "$rows"
+    rm -f "$rows"
+}
+
+config_file_json() {
+    local id="$1"
+    local label="$2"
+    local path="$3"
+    local kind="${4:-file}"
+    local exists=false valid=true size=0
+
+    if test -e "$path"; then
+        exists=true
+        size="$(du -sb "$path" 2>/dev/null | awk '{print $1}' || printf '0')"
+    fi
+
+    case "$id" in
+        settings)
+            if test "$exists" = true && ! jq -e 'type == "object"' "$path" >/dev/null 2>&1; then
+                valid=false
+            fi
+            ;;
+        backend)
+            if test "$exists" = true && ! bash -n "$path" >/dev/null 2>&1; then
+                valid=false
+            fi
+            ;;
+    esac
+
+    jq -nc \
+        --arg id "$id" \
+        --arg label "$label" \
+        --arg path "$path" \
+        --arg kind "$kind" \
+        --argjson exists "$exists" \
+        --argjson valid "$valid" \
+        --argjson size "${size:-0}" \
+        '{id:$id,label:$label,path:$path,kind:$kind,exists:$exists,valid:$valid,size:$size}'
+}
+
+config_status_json() {
+    local branch commit remote dirty instances settings_valid backend_valid
+    local errors warnings style_preset colour_treatment qml_version hyprland_version
+    local files_json
+
+    branch="$(git -C "$project" branch --show-current 2>/dev/null || printf 'not-a-repository')"
+    commit="$(git -C "$project" rev-parse --short HEAD 2>/dev/null || printf 'unknown')"
+    remote="$(git -C "$project" remote get-url origin 2>/dev/null || printf 'none')"
+    dirty="$(git -C "$project" status --porcelain 2>/dev/null | wc -l | tr -d ' ')"
+    instances="$("$project/preview.sh" status 2>/dev/null | awk '/CHROMA instances:/ {print $3; exit}')"
+    : "${instances:=0}"
+
+    settings_valid=false
+    if test -f "$settings_file" && jq -e 'type == "object"' "$settings_file" >/dev/null 2>&1; then
+        settings_valid=true
+    fi
+
+    backend_valid=false
+    if bash -n "$project/backend/chroma-settingsctl" >/dev/null 2>&1; then
+        backend_valid=true
+    fi
+
+    errors="$(tail -n 500 "$preview_log" 2>/dev/null | grep -Ec 'ERROR:|SyntaxError|Type .* unavailable' || true)"
+    warnings="$(tail -n 500 "$preview_log" 2>/dev/null | grep -Ec 'WARN' || true)"
+    style_preset="$(jq -r '.style.preset // "UNKNOWN"' "$settings_file" 2>/dev/null || printf 'UNKNOWN')"
+    colour_treatment="$(jq -r '.style.colorTreatment // "UNKNOWN"' "$settings_file" 2>/dev/null || printf 'UNKNOWN')"
+    qml_version="$(quickshell --version 2>/dev/null | head -n1 || printf 'unknown')"
+    hyprland_version="$(hyprctl version 2>/dev/null | awk 'NR==1 {print; exit}')"
+    : "${hyprland_version:=unknown}"
+
+    files_json="$({
+        config_file_json settings "CHROMA settings" "$settings_file"
+        config_file_json style "Hyprland style" "$style_config"
+        config_file_json displays "Display layout" "$display_config"
+        config_file_json wallpaper "Wallpaper configuration" "$wallpaper_root" directory
+        config_file_json backend "Settings backend" "$project/backend/chroma-settingsctl"
+        config_file_json log "Runtime log" "$preview_log"
+    } | jq -s '.')"
+
+    jq -n \
+        --arg branch "$branch" \
+        --arg commit "$commit" \
+        --arg remote "$remote" \
+        --argjson dirty "${dirty:-0}" \
+        --argjson instances "${instances:-0}" \
+        --argjson settingsValid "$settings_valid" \
+        --argjson backendValid "$backend_valid" \
+        --argjson errors "${errors:-0}" \
+        --argjson warnings "${warnings:-0}" \
+        --arg stylePreset "$style_preset" \
+        --arg colourTreatment "$colour_treatment" \
+        --arg quickshell "$qml_version" \
+        --arg hyprland "$hyprland_version" \
+        --argjson files "$files_json" \
+        '{ok:true,git:{branch:$branch,commit:$commit,remote:$remote,dirty:$dirty},runtime:{instances:$instances,errors:$errors,warnings:$warnings,quickshell:$quickshell,hyprland:$hyprland},configuration:{settingsValid:$settingsValid,backendValid:$backendValid,stylePreset:$stylePreset,colourTreatment:$colourTreatment},files:$files}'
+}
+
+config_path_for_id() {
+    case "${1:-}" in
+        settings) printf '%s\n' "$settings_file" ;;
+        style) printf '%s\n' "$style_config" ;;
+        displays) printf '%s\n' "$display_config" ;;
+        wallpaper) printf '%s\n' "$wallpaper_root" ;;
+        backend) printf '%s\n' "$project/backend/chroma-settingsctl" ;;
+        log) printf '%s\n' "$preview_log" ;;
+        project) printf '%s\n' "$project" ;;
+        snapshots) printf '%s\n' "$snapshots" ;;
+        *) return 1 ;;
+    esac
+}
+
+config_open() {
+    local path
+
+    path="$(config_path_for_id "${1:-}" 2>/dev/null || true)"
+    if test -z "$path"; then
+        printf 'UNKNOWN CONFIGURATION TARGET\n'
+        return 1
+    fi
+
+    if test -d "$path"; then
+        open_path "$path"
+    else
+        open_file "$path"
+    fi
+
+    printf 'OPENED: %s\n' "$path"
+}
+
+config_copy_path() {
+    local path
+
+    path="$(config_path_for_id "${1:-}" 2>/dev/null || true)"
+    if test -z "$path"; then
+        printf 'UNKNOWN CONFIGURATION TARGET\n'
+        return 1
+    fi
+
+    if ! command -v wl-copy >/dev/null 2>&1; then
+        printf 'WL-COPY IS UNAVAILABLE\n'
+        return 1
+    fi
+
+    printf '%s' "$path" | wl-copy
+    printf 'COPIED PATH: %s\n' "$path"
+}
+
+config_validate() {
+    local failures=0
+    local source_line
+
+    printf '=== CHROMA CONFIGURATION VALIDATION ===\n'
+
+    if test -f "$settings_file" && jq -e 'type == "object"' "$settings_file" >/dev/null 2>&1; then
+        printf 'PASS  settings JSON\n'
+    else
+        printf 'FAIL  settings JSON\n'
+        failures=$((failures + 1))
+    fi
+
+    if bash -n "$project/backend/chroma-settingsctl" >/dev/null 2>&1; then
+        printf 'PASS  backend Bash syntax\n'
+    else
+        printf 'FAIL  backend Bash syntax\n'
+        failures=$((failures + 1))
+    fi
+
+    for source_line in \
+        "$project/shell.qml" \
+        "$project/SettingsWindow.qml" \
+        "$project/settings/pages/ConfigPage.qml"
+    do
+        if test -s "$source_line"; then
+            printf 'PASS  %s\n' "${source_line#$project/}"
+        else
+            printf 'FAIL  %s\n' "${source_line#$project/}"
+            failures=$((failures + 1))
+        fi
+    done
+
+    if git -C "$project" diff --check >/dev/null 2>&1; then
+        printf 'PASS  Git whitespace\n'
+    else
+        printf 'FAIL  Git whitespace\n'
+        failures=$((failures + 1))
+    fi
+
+    if test -f "$style_config"; then
+        printf 'PASS  Hyprland style fragment\n'
+    else
+        printf 'WARN  Hyprland style fragment is missing\n'
+    fi
+
+    if test -f "$display_config"; then
+        printf 'PASS  display fragment\n'
+    else
+        printf 'WARN  display fragment is missing\n'
+    fi
+
+    printf '\nRESULT: %s FAILURE(S)\n' "$failures"
+    test "$failures" -eq 0
+}
+
+snapshot_delete() {
+    local id="${1:-}"
+    local archive
+
+    archive="$(snapshot_path_for_id "$id" 2>/dev/null || true)"
+    if test -z "$archive" || ! test -f "$archive"; then
+        printf 'SNAPSHOT NOT FOUND\n'
+        return 1
+    fi
+
+    rm -f -- "$archive"
+    printf 'SNAPSHOT DELETED: %s\n' "$id"
+}
+
+snapshot_export() {
+    local id="${1:-}"
+    local archive target
+
+    archive="$(snapshot_path_for_id "$id" 2>/dev/null || true)"
+    if test -z "$archive" || ! snapshot_validate_archive "$archive"; then
+        printf 'VALID SNAPSHOT NOT FOUND\n'
+        return 1
+    fi
+
+    mkdir -p "$home/Downloads"
+    target="$home/Downloads/$id"
+    cp -a "$archive" "$target"
+    printf 'SNAPSHOT EXPORTED: %s\n' "$target"
+}
+
+snapshot_import() {
+    local requested="${1:-}"
+    local source basename_value target stamp
+
+    requested="${requested#file://}"
+    if [[ "$requested" == '~/'* ]]; then
+        requested="$home/${requested:2}"
+    fi
+
+    source="$requested"
+    if test -z "$source" || ! snapshot_validate_archive "$source"; then
+        printf 'IMPORT ARCHIVE FAILED VALIDATION\n'
+        return 1
+    fi
+
+    basename_value="$(basename -- "$source")"
+    basename_value="$(safe_label "${basename_value%.tar.gz}").tar.gz"
+    target="$snapshots/$basename_value"
+
+    if test -e "$target"; then
+        stamp="$(date +%Y%m%d-%H%M%S)"
+        target="$snapshots/${basename_value%.tar.gz}-${stamp}.tar.gz"
+    fi
+
+    cp -a "$source" "$target"
+    printf 'SNAPSHOT IMPORTED: %s\n' "$(basename -- "$target")"
+}
+
+restore_replace_directory() {
+    local payload="$1"
+    local relative="$2"
+    local source="$payload/$relative"
+    local destination="$home/$relative"
+
+    test -e "$source" || return 0
+    rm -rf -- "$destination"
+    mkdir -p "$(dirname "$destination")"
+    cp -a "$source" "$destination"
+}
+
+snapshot_restore() {
+    local id="${1:-}"
+    local archive staging payload pre_restore entry basename_value
+
+    archive="$(snapshot_path_for_id "$id" 2>/dev/null || true)"
+    if test -z "$archive" || ! snapshot_validate_archive "$archive"; then
+        printf 'VALID SNAPSHOT NOT FOUND\n'
+        return 1
+    fi
+
+    pre_restore="$(snapshot_create pre-restore)" || {
+        printf 'PRE-RESTORE SNAPSHOT COULD NOT BE CREATED\n'
+        return 1
+    }
+
+    staging="$(mktemp -d "$config_restore_root/restore.XXXXXX")"
+    if ! tar --no-same-owner --no-same-permissions -xzf "$archive" -C "$staging"; then
+        rm -rf "$staging"
+        printf 'SNAPSHOT COULD NOT BE EXTRACTED\n'
+        return 1
+    fi
+
+    payload="$staging/payload"
+    if ! test -d "$payload/Projects/chroma-shell"; then
+        rm -rf "$staging"
+        printf 'SNAPSHOT PROJECT PAYLOAD IS MISSING\n'
+        return 1
+    fi
+
+    find "$project" \
+        -mindepth 1 \
+        -maxdepth 1 \
+        ! -name '.git' \
+        -exec rm -rf -- {} +
+    cp -a "$payload/Projects/chroma-shell/." "$project/"
+
+    restore_replace_directory "$payload" ".config/chroma"
+    restore_replace_directory "$payload" ".config/chroma-wallpaper"
+
+    if test -d "$payload/.config/hypr/conf.d"; then
+        mkdir -p "$home/.config/hypr/conf.d"
+        find "$home/.config/hypr/conf.d" \
+            -maxdepth 1 \
+            -type f \
+            -name 'chroma-*.conf' \
+            -delete
+        cp -a "$payload/.config/hypr/conf.d/." "$home/.config/hypr/conf.d/"
+    fi
+
+    if test -d "$payload/.local/share/chroma-settings"; then
+        while IFS= read -r -d '' entry; do
+            basename_value="$(basename -- "$entry")"
+            rm -rf -- "$settings_root/$basename_value"
+            cp -a "$entry" "$settings_root/"
+        done < <(
+            find "$payload/.local/share/chroma-settings" \
+                -mindepth 1 \
+                -maxdepth 1 \
+                -print0
+        )
+    fi
+
+    if test -d "$payload/.local/bin"; then
+        mkdir -p "$home/.local/bin"
+        cp -a "$payload/.local/bin/." "$home/.local/bin/"
+    fi
+
+    rm -rf "$staging"
+
+    if ! bash -n "$project/backend/chroma-settingsctl" >/dev/null 2>&1; then
+        printf 'RESTORE COMPLETED WITH A BACKEND SYNTAX WARNING\n'
+        printf 'PRE-RESTORE SNAPSHOT: %s\n' "$pre_restore"
+        return 1
+    fi
+
+    notify "Snapshot restored; restart CHROMA when ready"
+    printf 'SNAPSHOT RESTORED: %s\n' "$id"
+    printf 'PRE-RESTORE SNAPSHOT: %s\n' "$pre_restore"
+    printf 'RESTART CHROMA TO LOAD THE RESTORED SOURCE\n'
+}
+
 case "${1:-help}" in
     style-sync)
         shift
@@ -870,6 +1448,54 @@ case "${1:-help}" in
         application_open_entry "$@"
         ;;
 
+    config-status-json)
+        config_status_json
+        ;;
+
+    config-validate)
+        config_validate
+        ;;
+
+    config-open)
+        shift
+        config_open "$@"
+        ;;
+
+    config-copy-path)
+        shift
+        config_copy_path "$@"
+        ;;
+
+    snapshots-json)
+        snapshots_json
+        ;;
+
+    snapshot-create)
+        archive="$(snapshot_create "${2:-manual}")" || exit 1
+        printf 'SNAPSHOT CREATED: %s\n' "$archive"
+        notify "Snapshot created: $(basename -- "$archive")"
+        ;;
+
+    snapshot-restore)
+        shift
+        snapshot_restore "$@"
+        ;;
+
+    snapshot-delete)
+        shift
+        snapshot_delete "$@"
+        ;;
+
+    snapshot-export)
+        shift
+        snapshot_export "$@"
+        ;;
+
+    snapshot-import)
+        shift
+        snapshot_import "$@"
+        ;;
+
     open-project)
         open_path "$project"
         printf 'Opened %s\n' "$project"
@@ -925,18 +1551,9 @@ case "${1:-help}" in
         ;;
 
     snapshot)
-        stamp="$(date +%Y%m%d-%H%M%S)"
-        archive="$snapshots/chroma-$stamp.tar.gz"
-        tar -czf "$archive" \
-            -C "$home" \
-            Projects/chroma-shell \
-            .config/hypr \
-            .config/chroma-wallpaper \
-            .config/chroma \
-            .local/bin/chroma-wallpaper \
-            2>/dev/null
-        printf 'Snapshot created: %s\n' "$archive"
-        notify "Snapshot created: $(basename "$archive")"
+        archive="$(snapshot_create manual)" || exit 1
+        printf 'SNAPSHOT CREATED: %s\n' "$archive"
+        notify "Snapshot created: $(basename -- "$archive")"
         ;;
 
     copy-report)
@@ -963,7 +1580,10 @@ case "${1:-help}" in
             'style-sync|system-json|display-json|display-preview|display-keep|' \
             'display-revert|display-known-good|display-restore-known-good|' \
             'display-focus|applications-json|application-set-default|' \
-            'application-autostart-set|application-open-entry|open-project|' \
+            'application-autostart-set|application-open-entry|' \
+            'config-status-json|config-validate|config-open|config-copy-path|' \
+            'snapshots-json|snapshot-create|snapshot-restore|snapshot-delete|' \
+            'snapshot-export|snapshot-import|open-project|' \
             'open-hyprland|open-nixos|' \
             'open-state|open-log|open-wallpaper|open-display-config|' \
             'reload-hyprland|restart-shell|health|snapshot|' \
