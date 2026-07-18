@@ -71,6 +71,39 @@ ShellRoot {
     readonly property real fontScale: styleTokens.fontScale
     readonly property real iconScale: styleTokens.iconScale
     readonly property int panelPadding: styleTokens.panelPadding
+    readonly property int identityWidth: styleTokens.identityWidth
+    readonly property int identityHoverWidth: styleTokens.identityHoverWidth
+    readonly property int identityHorizontalPadding:
+        styleTokens.identityHorizontalPadding
+    readonly property int workspaceGap: styleTokens.workspaceGap
+    readonly property int workspaceRailPadding:
+        styleTokens.workspaceRailPadding
+    readonly property int workspaceButtonWidth:
+        styleTokens.workspaceButtonWidth
+    readonly property int workspaceHoverWidth:
+        styleTokens.workspaceHoverWidth
+    readonly property int workspaceActiveWidth:
+        styleTokens.workspaceActiveWidth
+    readonly property int workspaceButtonHeight:
+        styleTokens.workspaceButtonHeight
+    readonly property int workspaceActiveHeight:
+        styleTokens.workspaceActiveHeight
+    readonly property int workspaceSlotWidth:
+        styleTokens.workspaceSlotWidth
+    readonly property int mediaHorizontalPadding:
+        styleTokens.mediaHorizontalPadding
+    readonly property int mediaContentGap: styleTokens.mediaContentGap
+    readonly property int albumArtSize: styleTokens.albumArtSize
+    readonly property int spectrumWidth: styleTokens.spectrumWidth
+    readonly property int spectrumHeight: styleTokens.spectrumHeight
+    readonly property int spectrumGap: styleTokens.spectrumGap
+    readonly property int utilityWidth: styleTokens.utilityWidth
+    readonly property int utilityHoverWidth: styleTokens.utilityHoverWidth
+    readonly property int clockWidth: styleTokens.clockWidth
+    readonly property int clockHorizontalPadding:
+        styleTokens.clockHorizontalPadding
+    readonly property int clockSignalHeight:
+        styleTokens.clockSignalHeight
 
     readonly property int animationDuration:
         animationSpeed === "FAST"
@@ -88,11 +121,11 @@ ShellRoot {
     readonly property int mediaWidth: settingsStore.mediaModuleWidth
 
     readonly property int workspaceRailWidth:
-        density === "COMPACT"
-            ? 248
-            : density === "SPACIOUS"
-                ? 300
-                : 276
+        workspaceCount <= 0
+            ? 0
+            : workspaceRailPadding * 2
+                + workspaceSlotWidth * workspaceCount
+                + workspaceGap * Math.max(0, workspaceCount - 1)
 
     readonly property string resolvedBarMonitor: {
         var screens = Quickshell.screens

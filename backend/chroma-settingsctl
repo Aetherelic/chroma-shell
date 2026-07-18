@@ -10,6 +10,8 @@ snapshots="$settings_root/snapshots"
 backups="$home/.local/share"
 display_root="$settings_root/display"
 display_config="$home/.config/hypr/conf.d/chroma-displays.conf"
+style_config="$home/.config/hypr/conf.d/chroma-style.conf"
+hyprland_config="$home/.config/hypr/hyprland.conf"
 pending_file="$display_root/pending"
 
 mkdir -p "$settings_root" "$snapshots" "$display_root"
@@ -254,7 +256,82 @@ display_revert() {
     printf 'DISPLAY CONFIGURATION RESTORED\n'
 }
 
+ensure_style_source() {
+    local source_line='source = ~/.config/hypr/conf.d/chroma-style.conf'
+
+    mkdir -p "$(dirname "$hyprland_config")" "$(dirname "$style_config")"
+    touch "$hyprland_config"
+
+    if ! grep -Fqx "$source_line" "$hyprland_config" 2>/dev/null; then
+        printf '\n%s\n' "$source_line" >> "$hyprland_config"
+    fi
+}
+
+style_sync() {
+    local preset="${1:-SHARP}"
+    local border_size="${2:-1}"
+    local rounding
+
+    preset="$(printf '%s' "$preset" | tr '[:lower:]' '[:upper:]')"
+
+    case "$preset" in
+        TECHNICAL)
+            rounding=4
+            ;;
+        SOFT)
+            rounding=12
+            ;;
+        CAPSULE)
+            rounding=18
+            ;;
+        HYBRID)
+            rounding=8
+            ;;
+        *)
+            preset=SHARP
+            rounding=0
+            ;;
+    esac
+
+    case "$border_size" in
+        0|1|2|3)
+            ;;
+        *)
+            border_size=1
+            ;;
+    esac
+
+    ensure_style_source
+
+    cat > "$style_config" <<EOF
+# CHROMA managed window geometry
+# Generated $(date --iso-8601=seconds)
+
+# Matches Hyprland client geometry to the active CHROMA style preset.
+general {
+    border_size = $border_size
+}
+
+decoration {
+    rounding = $rounding
+    rounding_power = 2
+}
+EOF
+
+    hyprctl keyword general:border_size "$border_size" >/dev/null 2>&1 || true
+    hyprctl keyword decoration:rounding "$rounding" >/dev/null 2>&1 || true
+    hyprctl keyword decoration:rounding_power 2 >/dev/null 2>&1 || true
+
+    printf 'STYLE SYNCED: %s / ROUNDING %s / BORDER %s\n' \
+        "$preset" "$rounding" "$border_size"
+}
+
 case "${1:-help}" in
+    style-sync)
+        shift
+        style_sync "$@"
+        ;;
+
     system-json)
         system_json
         ;;
@@ -368,7 +445,7 @@ case "${1:-help}" in
     *)
         printf '%s\n' \
             'Usage: chroma-settingsctl {' \
-            'system-json|display-json|display-preview|display-keep|' \
+            'style-sync|system-json|display-json|display-preview|display-keep|' \
             'display-revert|open-project|open-hyprland|open-nixos|' \
             'open-state|open-log|open-wallpaper|open-display-config|' \
             'reload-hyprland|restart-shell|health|snapshot|' \

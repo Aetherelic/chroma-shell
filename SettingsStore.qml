@@ -65,6 +65,10 @@ Scope {
     readonly property string settingsPath:
         Quickshell.env("HOME") + "/.config/chroma/settings.json"
 
+    readonly property string backendPath:
+        Quickshell.env("HOME")
+        + "/Projects/chroma-shell/backend/chroma-settingsctl"
+
     FileView {
         id: settingsFile
         path: store.settingsPath
@@ -88,6 +92,25 @@ Scope {
         onTriggered: store.save()
     }
 
+    Timer {
+        id: styleSyncTimer
+        interval: 180
+        repeat: false
+        onTriggered: store.syncHyprlandStyle()
+    }
+
+    onStylePresetChanged: {
+        if (ready) {
+            styleSyncTimer.restart()
+        }
+    }
+
+    onBorderThicknessChanged: {
+        if (ready) {
+            styleSyncTimer.restart()
+        }
+    }
+
     function clamp(value, minimum, maximum) {
         return Math.max(minimum, Math.min(maximum, Number(value)))
     }
@@ -95,6 +118,83 @@ Scope {
     function normaliseChoice(value, choices, fallback) {
         var candidate = String(value || "").toUpperCase()
         return choices.indexOf(candidate) >= 0 ? candidate : fallback
+    }
+
+    function styleProfile(preset) {
+        var name = normaliseChoice(
+            preset,
+            ["SHARP", "TECHNICAL", "SOFT", "CAPSULE", "HYBRID"],
+            "SHARP"
+        )
+
+        if (name === "TECHNICAL") {
+            return {
+                preset: name, barHeight: 66, outerMargin: 8, moduleGap: 6,
+                mediaWidth: 560, borderThickness: 1, fontScale: 0.95,
+                iconScale: 0.95, panelPadding: 16, workspaceStyle: "BLOCKS"
+            }
+        }
+
+        if (name === "SOFT") {
+            return {
+                preset: name, barHeight: 68, outerMargin: 10, moduleGap: 8,
+                mediaWidth: 560, borderThickness: 2, fontScale: 1.0,
+                iconScale: 1.0, panelPadding: 18, workspaceStyle: "BLOCKS"
+            }
+        }
+
+        if (name === "CAPSULE") {
+            return {
+                preset: name, barHeight: 64, outerMargin: 10, moduleGap: 8,
+                mediaWidth: 540, borderThickness: 2, fontScale: 0.95,
+                iconScale: 0.92, panelPadding: 18, workspaceStyle: "PILLS"
+            }
+        }
+
+        if (name === "HYBRID") {
+            return {
+                preset: name, barHeight: 66, outerMargin: 8, moduleGap: 7,
+                mediaWidth: 560, borderThickness: 1, fontScale: 1.0,
+                iconScale: 0.95, panelPadding: 17, workspaceStyle: "PILLS"
+            }
+        }
+
+        return {
+            preset: "SHARP", barHeight: 64, outerMargin: 8, moduleGap: 6,
+            mediaWidth: 560, borderThickness: 1, fontScale: 1.0,
+            iconScale: 0.95, panelPadding: 16, workspaceStyle: "BLOCKS"
+        }
+    }
+
+    function applyStyleProfile(preset) {
+        var profile = styleProfile(preset)
+
+        stylePreset = profile.preset
+        barHeight = profile.barHeight
+        outerMargin = profile.outerMargin
+        moduleGap = profile.moduleGap
+        mediaModuleWidth = profile.mediaWidth
+        borderThickness = profile.borderThickness
+        fontScale = profile.fontScale
+        iconScale = profile.iconScale
+        panelPadding = profile.panelPadding
+        workspaceStyle = profile.workspaceStyle
+    }
+
+    function selectStylePreset(preset) {
+        applyStyleProfile(preset)
+        scheduleSave()
+        styleSyncTimer.restart()
+    }
+
+    function syncHyprlandStyle() {
+        Quickshell.execDetached([
+            "bash",
+            backendPath,
+            "style-sync",
+            stylePreset,
+            String(borderThickness)
+        ])
     }
 
     function scheduleSave() {
@@ -109,7 +209,7 @@ Scope {
         }
 
         settingsFile.setText(JSON.stringify({
-            version: 3,
+            version: 4,
             widgets: {
                 workspaces: showWorkspaces,
                 media: showMedia,
@@ -191,17 +291,8 @@ Scope {
         clockFormat = "24H"
         dateFormat = "SHORT"
 
-        stylePreset = "SHARP"
+        applyStyleProfile("SHARP")
         colorTreatment = "FULL PALETTE"
-        workspaceStyle = "BLOCKS"
-        barHeight = 73
-        outerMargin = 14
-        moduleGap = 8
-        mediaModuleWidth = 600
-        borderThickness = 1
-        fontScale = 1.0
-        iconScale = 1.0
-        panelPadding = 18
 
         spectrumBars = 28
         spectrumSensitivity = 1.0
@@ -223,6 +314,7 @@ Scope {
 
     Component.onCompleted: {
         var data = ({})
+        var loadedVersion = 0
         var raw = settingsFile.text()
 
         if (!raw || raw.trim().length === 0) {
@@ -236,6 +328,8 @@ Scope {
                 console.warn("CHROMA settings were invalid; defaults restored")
             }
         }
+
+        loadedVersion = Number(data.version || 0)
 
         var widgets = data.widgets || ({})
         var layout = data.layout || data
@@ -318,6 +412,13 @@ Scope {
         iconScale = clamp(style.iconScale || 1.0, 0.80, 1.30)
         panelPadding = Math.round(clamp(style.panelPadding || 18, 10, 30))
 
+        // CHROMA/04 geometry profiles became complete in schema v4.
+        // Migrate earlier radius-only presets once so existing users do not
+        // keep the mismatched dimensions that prompted this fix.
+        if (loadedVersion < 4) {
+            applyStyleProfile(stylePreset)
+        }
+
         spectrumBars = Math.round(clamp(spectrum.bars || 28, 12, 40))
         spectrumSensitivity = clamp(spectrum.sensitivity || 1.0, 0.5, 2.0)
         spectrumSmoothing = clamp(
@@ -355,5 +456,6 @@ Scope {
 
         ready = true
         saveTimer.restart()
+        styleSyncTimer.restart()
     }
 }
