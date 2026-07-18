@@ -3,23 +3,32 @@
 
   inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
-  outputs = { self, nixpkgs }:
+  outputs = { nixpkgs, ... }:
     let
-      system = "x86_64-linux";
-      pkgs = import nixpkgs { inherit system; };
+      systems = [ "x86_64-linux" "aarch64-linux" ];
+      forAllSystems = nixpkgs.lib.genAttrs systems;
     in {
-      devShells.${system}.default = pkgs.mkShell {
-        packages = with pkgs; [
-          quickshell
-          jq
-          playerctl
-          pamixer
-          brightnessctl
-          wl-clipboard
-          cliphist
-          libnotify
-          cava
-        ];
-      };
+      devShells = forAllSystems (system:
+        let
+          pkgs = import nixpkgs { inherit system; };
+        in {
+          default = pkgs.mkShell {
+            packages = with pkgs; [
+              quickshell
+              jq
+              playerctl
+              wireplumber
+              brightnessctl
+              wl-clipboard
+              cliphist
+              libnotify
+              cava
+              networkmanager
+              bluez
+              grim
+              slurp
+            ];
+          };
+        });
     };
 }

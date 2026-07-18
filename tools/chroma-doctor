@@ -1,0 +1,116 @@
+#!/usr/bin/env bash
+
+set -u
+set -o pipefail
+
+root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)"
+home="${HOME:?HOME is not set}"
+xdg_config="${XDG_CONFIG_HOME:-$home/.config}"
+json=false
+
+test "${1:-}" = "--json" && json=true
+
+required=(bash hyprctl jq)
+recommended=(wpctl playerctl cava nmcli bluetoothctl brightnessctl notify-send)
+optional=(cliphist wl-copy wl-paste grim slurp swappy wf-recorder qalc)
+missing_required=()
+missing_recommended=()
+missing_optional=()
+
+has_command() {
+    command -v "$1" >/dev/null 2>&1
+}
+
+quickshell_bin=""
+for command_name in quickshell qs; do
+    if has_command "$command_name"; then
+        quickshell_bin="$(command -v "$command_name")"
+        break
+    fi
+done
+
+for command_name in "${required[@]}"; do
+    has_command "$command_name" || missing_required+=("$command_name")
+done
+
+test -n "$quickshell_bin" || missing_required+=("quickshell-or-qs")
+
+for command_name in "${recommended[@]}"; do
+    has_command "$command_name" || missing_recommended+=("$command_name")
+done
+
+for command_name in "${optional[@]}"; do
+    has_command "$command_name" || missing_optional+=("$command_name")
+done
+
+settings="$xdg_config/chroma/settings.json"
+settings_valid=true
+if test -f "$settings"; then
+    jq -e 'type == "object"' "$settings" >/dev/null 2>&1 || settings_valid=false
+fi
+
+runtime_files_valid=true
+for file in shell.qml preview.sh backend/chroma-settingsctl SettingsStore.qml; do
+    test -f "$root/$file" || runtime_files_valid=false
+done
+
+wayland=false
+test -n "${WAYLAND_DISPLAY:-}" && wayland=true
+hyprland_session=false
+test -n "${HYPRLAND_INSTANCE_SIGNATURE:-}" && hyprland_session=true
+
+qs_version="unavailable"
+if test -n "$quickshell_bin"; then
+    qs_version="$($quickshell_bin --version 2>/dev/null | head -n1 || true)"
+    test -n "$qs_version" || qs_version="unknown"
+fi
+
+array_json() {
+    if test "$#" -eq 0; then
+        printf '[]'
+    else
+        printf '%s\n' "$@" | jq -R -s 'split("\n") | map(select(length > 0))'
+    fi
+}
+
+if $json; then
+    jq -n \
+        --arg root "$root" \
+        --arg quickshell "$qs_version" \
+        --argjson wayland "$wayland" \
+        --argjson hyprlandSession "$hyprland_session" \
+        --argjson settingsValid "$settings_valid" \
+        --argjson runtimeFilesValid "$runtime_files_valid" \
+        --argjson required "$(array_json "${missing_required[@]}")" \
+        --argjson recommended "$(array_json "${missing_recommended[@]}")" \
+        --argjson optional "$(array_json "${missing_optional[@]}")" \
+        '{ok:(($required|length)==0 and $settingsValid and $runtimeFilesValid),root:$root,quickshell:$quickshell,wayland:$wayland,hyprlandSession:$hyprlandSession,settingsValid:$settingsValid,runtimeFilesValid:$runtimeFilesValid,missing:{required:$required,recommended:$recommended,optional:$optional}}'
+else
+    printf 'CHROMA DOCTOR\n'
+    printf '============\n'
+    printf 'Root:       %s\n' "$root"
+    printf 'Quickshell: %s\n' "$qs_version"
+    printf 'Wayland:    %s\n' "$wayland"
+    printf 'Hyprland:   %s\n' "$hyprland_session"
+    printf 'Settings:   %s\n' "$settings_valid"
+    printf 'Files:      %s\n' "$runtime_files_valid"
+
+    if test "${#missing_required[@]}" -gt 0; then
+        printf '\nMissing required capabilities:\n'
+        printf '  - %s\n' "${missing_required[@]}"
+    fi
+
+    if test "${#missing_recommended[@]}" -gt 0; then
+        printf '\nMissing recommended capabilities:\n'
+        printf '  - %s\n' "${missing_recommended[@]}"
+    fi
+
+    if test "${#missing_optional[@]}" -gt 0; then
+        printf '\nUnavailable optional features:\n'
+        printf '  - %s\n' "${missing_optional[@]}"
+    fi
+fi
+
+if test "${#missing_required[@]}" -gt 0 || ! $settings_valid || ! $runtime_files_valid; then
+    exit 1
+fi

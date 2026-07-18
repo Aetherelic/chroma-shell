@@ -77,3 +77,26 @@ text role, state colour, and the real CAVA spectrum gradient together.
 
 Open the selector with `Super+Shift+T`, or right-click the palette button to
 cycle. The selected theme persists across shell restarts.
+
+## Command line and installer contract
+
+CHROMA exposes a stable `chroma` command for runtime control and diagnostics:
+
+```text
+chroma start|stop|restart|status
+chroma launcher
+chroma clipboard
+chroma control
+chroma notifications
+chroma themes
+chroma settings
+chroma doctor
+```
+
+The shell resolves its own installation root and follows XDG paths. It does not
+require `~/Projects/chroma-shell`, which allows the same runtime to be packaged
+for NixOS, Arch, Fedora and Ubuntu. Installer metadata lives in `packaging/`.
+
+## Licence
+
+CHROMA is released under the MIT License. See `LICENSE`.

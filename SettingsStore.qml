@@ -74,8 +74,7 @@ Scope {
         Quickshell.env("HOME") + "/.config/chroma/settings.json"
 
     readonly property string backendPath:
-        Quickshell.env("HOME")
-        + "/Projects/chroma-shell/backend/chroma-settingsctl"
+        Quickshell.shellPath("backend/chroma-settingsctl")
 
     FileView {
         id: settingsFile

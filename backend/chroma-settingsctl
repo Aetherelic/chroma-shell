@@ -3,24 +3,28 @@
 set -u
 
 home="${HOME:?HOME is not set}"
-project="$home/Projects/chroma-shell"
-state="$home/.local/state/chroma-shell"
-settings_root="$home/.local/share/chroma-settings"
+xdg_config="${XDG_CONFIG_HOME:-$home/.config}"
+xdg_data="${XDG_DATA_HOME:-$home/.local/share}"
+xdg_state="${XDG_STATE_HOME:-$home/.local/state}"
+script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+project="$(cd -- "$script_dir/.." && pwd -P)"
+state="$xdg_state/chroma-shell"
+settings_root="$xdg_data/chroma-settings"
 snapshots="$settings_root/snapshots"
-backups="$home/.local/share"
+backups="$xdg_data"
 display_root="$settings_root/display"
-display_config="$home/.config/hypr/conf.d/chroma-displays.conf"
-style_config="$home/.config/hypr/conf.d/chroma-style.conf"
-hyprland_config="$home/.config/hypr/hyprland.conf"
+display_config="$xdg_config/hypr/conf.d/chroma-displays.conf"
+style_config="$xdg_config/hypr/conf.d/chroma-style.conf"
+hyprland_config="$xdg_config/hypr/hyprland.conf"
 pending_file="$display_root/pending"
 applications_root="$settings_root/applications"
-autostart_root="$home/.config/autostart"
-mimeapps_file="$home/.config/mimeapps.list"
+autostart_root="$xdg_config/autostart"
+mimeapps_file="$xdg_config/mimeapps.list"
 applications_backups="$applications_root/backups"
 config_root="$settings_root/config"
 config_restore_root="$config_root/restore"
-settings_file="$home/.config/chroma/settings.json"
-wallpaper_root="$home/.config/chroma-wallpaper"
+settings_file="$xdg_config/chroma/settings.json"
+wallpaper_root="$xdg_config/chroma-wallpaper"
 preview_log="$state/preview.log"
 
 mkdir -p \
@@ -931,18 +935,18 @@ snapshot_create() {
         return 1
     fi
 
-    if test -d "$home/.config/chroma"; then
+    if test -d "$xdg_config/chroma"; then
         mkdir -p "$payload/.config"
-        cp -a "$home/.config/chroma" "$payload/.config/"
+        cp -a "$xdg_config/chroma" "$payload/.config/"
     fi
 
-    if test -d "$home/.config/chroma-wallpaper"; then
+    if test -d "$xdg_config/chroma-wallpaper"; then
         mkdir -p "$payload/.config"
-        cp -a "$home/.config/chroma-wallpaper" "$payload/.config/"
+        cp -a "$xdg_config/chroma-wallpaper" "$payload/.config/"
     fi
 
-    if test -d "$home/.config/hypr/conf.d"; then
-        find "$home/.config/hypr/conf.d" \
+    if test -d "$xdg_config/hypr/conf.d"; then
+        find "$xdg_config/hypr/conf.d" \
             -maxdepth 1 \
             -type f \
             -name 'chroma-*.conf' \
@@ -1294,11 +1298,9 @@ snapshot_import() {
     printf 'SNAPSHOT IMPORTED: %s\n' "$(basename -- "$target")"
 }
 
-restore_replace_directory() {
-    local payload="$1"
-    local relative="$2"
-    local source="$payload/$relative"
-    local destination="$home/$relative"
+restore_replace_path() {
+    local source="$1"
+    local destination="$2"
 
     test -e "$source" || return 0
     rm -rf -- "$destination"
@@ -1342,17 +1344,17 @@ snapshot_restore() {
         -exec rm -rf -- {} +
     cp -a "$payload/Projects/chroma-shell/." "$project/"
 
-    restore_replace_directory "$payload" ".config/chroma"
-    restore_replace_directory "$payload" ".config/chroma-wallpaper"
+    restore_replace_path "$payload/.config/chroma" "$xdg_config/chroma"
+    restore_replace_path "$payload/.config/chroma-wallpaper" "$xdg_config/chroma-wallpaper"
 
     if test -d "$payload/.config/hypr/conf.d"; then
-        mkdir -p "$home/.config/hypr/conf.d"
-        find "$home/.config/hypr/conf.d" \
+        mkdir -p "$xdg_config/hypr/conf.d"
+        find "$xdg_config/hypr/conf.d" \
             -maxdepth 1 \
             -type f \
             -name 'chroma-*.conf' \
             -delete
-        cp -a "$payload/.config/hypr/conf.d/." "$home/.config/hypr/conf.d/"
+        cp -a "$payload/.config/hypr/conf.d/." "$xdg_config/hypr/conf.d/"
     fi
 
     if test -d "$payload/.local/share/chroma-settings"; then
@@ -1502,7 +1504,7 @@ case "${1:-help}" in
         ;;
 
     open-hyprland)
-        open_file "$home/.config/hypr/hyprland.conf"
+        open_file "$hyprland_config"
         printf 'Opened Hyprland configuration\n'
         ;;
 
@@ -1512,7 +1514,7 @@ case "${1:-help}" in
         ;;
 
     open-state)
-        open_path "$home/.local/state/quickshell"
+        open_path "$xdg_state/quickshell"
         printf 'Opened Quickshell state directory\n'
         ;;
 
@@ -1526,7 +1528,7 @@ case "${1:-help}" in
         ;;
 
     open-wallpaper)
-        open_path "$home/.config/chroma-wallpaper"
+        open_path "$xdg_config/chroma-wallpaper"
         printf 'Opened wallpaper configuration\n'
         ;;
 
