@@ -56,6 +56,8 @@ ShellRoot {
     readonly property int launcherResults: settingsStore.launcherResults
     readonly property string osdPosition: settingsStore.osdPosition
     readonly property real osdDuration: settingsStore.osdDuration
+    readonly property var favoriteApplications: settingsStore.favoriteApplications
+    readonly property var hiddenApplications: settingsStore.hiddenApplications
 
     readonly property string stylePreset: settingsStore.stylePreset
     readonly property string colorTreatment: settingsStore.colorTreatment
