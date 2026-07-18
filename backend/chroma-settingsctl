@@ -99,6 +99,17 @@ report() {
     hyprctl monitors all -j 2>/dev/null | jq . 2>/dev/null || true
 }
 
+ensure_display_source() {
+    local source_line='source = ~/.config/hypr/conf.d/chroma-displays.conf'
+
+    mkdir -p "$(dirname "$hyprland_config")" "$(dirname "$display_config")"
+    touch "$hyprland_config"
+
+    if ! grep -Fqx "$source_line" "$hyprland_config" 2>/dev/null; then
+        printf '\n%s\n' "$source_line" >> "$hyprland_config"
+    fi
+}
+
 monitor_spec_from_json() {
     local row="$1"
     local name width height refresh x y scale transform vrr disabled mode
@@ -125,23 +136,29 @@ monitor_spec_from_json() {
         "$name" "$mode" "$x" "$y" "$scale" "$transform" "$vrr"
 }
 
-restore_display_snapshot() {
+apply_display_snapshot() {
     local snapshot="$1"
     local row spec
+    local failed=0
 
     test -f "$snapshot" || return 1
 
     while IFS= read -r row; do
         spec="$(monitor_spec_from_json "$row")"
-        hyprctl keyword monitor "$spec" >/dev/null 2>&1 || true
+        if ! hyprctl keyword monitor "$spec" >/dev/null 2>&1; then
+            failed=1
+        fi
     done < <(jq -c '.[]' "$snapshot")
+
+    return "$failed"
 }
 
 write_display_config() {
     local current="$1"
-    local row spec
+    local row spec temporary
 
     mkdir -p "$(dirname "$display_config")"
+    temporary="$(mktemp "${display_config}.tmp.XXXXXX")"
 
     {
         printf '# CHROMA managed display configuration\n'
@@ -152,52 +169,146 @@ write_display_config() {
             printf 'monitor = %s\n' "$spec"
         done < <(jq -c '.[]' "$current")
 
-        printf '\nmonitor = ,preferred,auto,1\n'
-    } > "$display_config"
+        printf '\n# Fallback for newly connected outputs.\n'
+        printf 'monitor = ,preferred,auto,1\n'
+    } > "$temporary"
+
+    mv "$temporary" "$display_config"
+    ensure_display_source
+}
+
+save_known_good() {
+    local current="${1:-}"
+    local temporary
+
+    if test -z "$current"; then
+        current="$(hyprctl monitors all -j 2>/dev/null)" || return 1
+    fi
+
+    if ! jq -e 'type == "array" and length > 0' >/dev/null 2>&1 \
+        <<<"$current"
+    then
+        return 1
+    fi
+
+    temporary="$(mktemp "$display_root/known-good.json.tmp.XXXXXX")"
+    printf '%s\n' "$current" | jq . > "$temporary"
+    mv "$temporary" "$display_root/known-good.json"
+}
+
+pending_token() {
+    cat "$pending_file" 2>/dev/null || true
+}
+
+clear_stale_pending() {
+    local token
+
+    token="$(pending_token)"
+    if test -n "$token" && ! test -f "$display_root/$token/monitors.json"; then
+        rm -f "$pending_file"
+    fi
 }
 
 display_preview() {
-    local name="${1:-}" mode="${2:-}" x="${3:-}" y="${4:-}" scale="${5:-}" transform="${6:-}" vrr="${7:-}" enabled="${8:-}"
-    local monitors active_count exists mode_valid token token_dir snapshot mode_cmd spec
+    local name="${1:-}" mode="${2:-}" x="${3:-}" y="${4:-}"
+    local scale="${5:-}" transform="${6:-}" vrr="${7:-}"
+    local enabled="${8:-}"
+    local monitors active_count exists mode_valid token token_dir snapshot
+    local mode_cmd spec current_pending
+
+    clear_stale_pending
+    current_pending="$(pending_token)"
+
+    if test -n "$current_pending"; then
+        jq -n '{ok:false,message:"A DISPLAY PREVIEW IS ALREADY ACTIVE"}'
+        return 1
+    fi
 
     monitors="$(hyprctl monitors all -j 2>/dev/null)" || {
         jq -n '{ok:false,message:"HYPRLAND MONITOR REPORT UNAVAILABLE"}'
         return 1
     }
 
-    exists="$(jq --arg name "$name" '[.[] | select(.name == $name)] | length' <<<"$monitors")"
+    if ! jq -e 'type == "array" and length > 0' >/dev/null 2>&1 \
+        <<<"$monitors"
+    then
+        jq -n '{ok:false,message:"NO DISPLAY OUTPUTS WERE REPORTED"}'
+        return 1
+    fi
+
+    exists="$(
+        jq --arg name "$name" \
+            '[.[] | select(.name == $name)] | length' \
+            <<<"$monitors"
+    )"
+
     if test "$exists" -ne 1; then
         jq -n '{ok:false,message:"UNKNOWN DISPLAY OUTPUT"}'
         return 1
     fi
 
-    if ! [[ "$x" =~ ^-?[0-9]+$ && "$y" =~ ^-?[0-9]+$ && "$scale" =~ ^[0-9]+([.][0-9]+)?$ && "$transform" =~ ^[0-7]$ && "$vrr" =~ ^[01]$ && "$enabled" =~ ^[01]$ ]]; then
+    if ! [[ "$x" =~ ^-?[0-9]+$ \
+        && "$y" =~ ^-?[0-9]+$ \
+        && "$scale" =~ ^[0-9]+([.][0-9]+)?$ \
+        && "$transform" =~ ^[0-7]$ \
+        && "$vrr" =~ ^[01]$ \
+        && "$enabled" =~ ^[01]$ ]]
+    then
         jq -n '{ok:false,message:"DISPLAY VALUES FAILED VALIDATION"}'
         return 1
     fi
 
+    if test "$x" -lt -16384 || test "$x" -gt 16384 \
+        || test "$y" -lt -16384 || test "$y" -gt 16384
+    then
+        jq -n '{ok:false,message:"DISPLAY POSITION IS OUTSIDE THE SAFE RANGE"}'
+        return 1
+    fi
+
+    if ! awk -v value="$scale" \
+        'BEGIN { exit !(value >= 0.50 && value <= 4.00) }'
+    then
+        jq -n '{ok:false,message:"DISPLAY SCALE IS OUTSIDE THE SAFE RANGE"}'
+        return 1
+    fi
+
     if test "$enabled" = "0"; then
-        active_count="$(jq '[.[] | select(.disabled != true)] | length' <<<"$monitors")"
+        active_count="$(
+            jq '[.[] | select(.disabled != true)] | length' \
+                <<<"$monitors"
+        )"
+
         if test "$active_count" -le 1; then
             jq -n '{ok:false,message:"THE LAST ACTIVE OUTPUT CANNOT BE DISABLED"}'
             return 1
         fi
+
         spec="$name,disable"
     else
-        mode_valid="$(jq --arg name "$name" --arg mode "$mode" '[.[] | select(.name == $name) | .availableModes[]? | select(. == $mode)] | length' <<<"$monitors")"
+        mode_valid="$(
+            jq --arg name "$name" --arg mode "$mode" \
+                '[.[] | select(.name == $name) | .availableModes[]? | select(. == $mode)] | length' \
+                <<<"$monitors"
+        )"
+
         if test "$mode_valid" -ne 1; then
             jq -n '{ok:false,message:"MODE IS NOT REPORTED BY THIS DISPLAY"}'
             return 1
         fi
+
         mode_cmd="${mode%Hz}"
         spec="$name,$mode_cmd,${x}x${y},$scale,transform,$transform,vrr,$vrr"
+    fi
+
+    if ! test -f "$display_root/known-good.json"; then
+        save_known_good "$monitors" || true
     fi
 
     token="$(date +%s)-$$-$RANDOM"
     token_dir="$display_root/$token"
     snapshot="$token_dir/monitors.json"
     mkdir -p "$token_dir"
-    printf '%s\n' "$monitors" > "$snapshot"
+    printf '%s\n' "$monitors" | jq . > "$snapshot"
 
     if ! hyprctl keyword monitor "$spec" >/dev/null 2>&1; then
         rm -rf "$token_dir"
@@ -209,25 +320,29 @@ display_preview() {
 
     (
         sleep 15
-        if test "$(cat "$pending_file" 2>/dev/null)" = "$token"; then
-            "$0" display-revert "$token" >/dev/null 2>&1 || true
+        if test "$(pending_token)" = "$token"; then
+            bash "$0" display-revert "$token" >/dev/null 2>&1 || true
         fi
     ) </dev/null >/dev/null 2>&1 &
 
-    jq -n --arg token "$token" '{ok:true,token:$token,message:"TEMPORARY DISPLAY CONFIGURATION APPLIED"}'
+    jq -n \
+        --arg token "$token" \
+        --argjson seconds 15 \
+        '{ok:true,token:$token,seconds:$seconds,message:"TEMPORARY DISPLAY CONFIGURATION APPLIED"}'
 }
 
 display_keep() {
     local token="${1:-}" current
 
-    if test -z "$token" || test "$(cat "$pending_file" 2>/dev/null)" != "$token"; then
+    if test -z "$token" || test "$(pending_token)" != "$token"; then
         printf 'NO MATCHING DISPLAY PREVIEW IS ACTIVE\n'
         return 1
     fi
 
     current="$(hyprctl monitors all -j 2>/dev/null)" || return 1
-    printf '%s\n' "$current" > "$display_root/known-good.json"
+    save_known_good "$current" || return 1
     write_display_config "$display_root/known-good.json"
+
     rm -f "$pending_file"
     rm -rf "$display_root/$token"
     notify "Display configuration saved"
@@ -235,7 +350,7 @@ display_keep() {
 }
 
 display_revert() {
-    local token="${1:-}" snapshot
+    local token="${1:-}" snapshot active
 
     if test -z "$token"; then
         printf 'DISPLAY PREVIEW TOKEN IS REQUIRED\n'
@@ -244,16 +359,84 @@ display_revert() {
 
     snapshot="$display_root/$token/monitors.json"
     if ! test -f "$snapshot"; then
-        rm -f "$pending_file"
+        if test "$(pending_token)" = "$token"; then
+            rm -f "$pending_file"
+        fi
         printf 'DISPLAY PREVIEW WAS ALREADY RESTORED\n'
         return 0
     fi
 
-    restore_display_snapshot "$snapshot"
-    rm -f "$pending_file"
+    if ! apply_display_snapshot "$snapshot"; then
+        printf 'DISPLAY CONFIGURATION COULD NOT BE FULLY RESTORED\n'
+        return 1
+    fi
+
+    active="$(pending_token)"
+    if test "$active" = "$token"; then
+        rm -f "$pending_file"
+    fi
     rm -rf "$display_root/$token"
     notify "Display configuration restored"
     printf 'DISPLAY CONFIGURATION RESTORED\n'
+}
+
+display_known_good() {
+    local current
+
+    current="$(hyprctl monitors all -j 2>/dev/null)" || {
+        printf 'HYPRLAND MONITOR REPORT UNAVAILABLE\n'
+        return 1
+    }
+
+    save_known_good "$current" || {
+        printf 'KNOWN-GOOD DISPLAY SNAPSHOT COULD NOT BE WRITTEN\n'
+        return 1
+    }
+
+    write_display_config "$display_root/known-good.json"
+    notify "Current display layout saved as known-good"
+    printf 'CURRENT DISPLAY LAYOUT SAVED AS KNOWN-GOOD\n'
+}
+
+display_restore_known_good() {
+    local snapshot="$display_root/known-good.json"
+
+    if ! test -f "$snapshot"; then
+        printf 'NO KNOWN-GOOD DISPLAY LAYOUT EXISTS\n'
+        return 1
+    fi
+
+    if ! apply_display_snapshot "$snapshot"; then
+        printf 'KNOWN-GOOD DISPLAY LAYOUT COULD NOT BE FULLY RESTORED\n'
+        return 1
+    fi
+
+    write_display_config "$snapshot"
+    notify "Known-good display layout restored"
+    printf 'KNOWN-GOOD DISPLAY LAYOUT RESTORED\n'
+}
+
+display_focus() {
+    local name="${1:-}"
+    local exists
+
+    exists="$(
+        hyprctl monitors all -j 2>/dev/null \
+            | jq --arg name "$name" \
+                '[.[] | select(.name == $name and .disabled != true)] | length'
+    )"
+
+    if test "${exists:-0}" -ne 1; then
+        printf 'ACTIVE DISPLAY OUTPUT NOT FOUND\n'
+        return 1
+    fi
+
+    hyprctl dispatch focusmonitor "$name" >/dev/null 2>&1 || {
+        printf 'HYPRLAND COULD NOT FOCUS THE DISPLAY\n'
+        return 1
+    }
+
+    printf 'DISPLAY FOCUSED: %s\n' "$name"
 }
 
 ensure_style_source() {
@@ -337,7 +520,7 @@ case "${1:-help}" in
         ;;
 
     display-json)
-        hyprctl monitors all -j 2>/dev/null
+        hyprctl monitors all -j 2>/dev/null             | jq 'sort_by([.disabled, .x, .y, .name])'
         ;;
 
     display-preview)
@@ -353,6 +536,19 @@ case "${1:-help}" in
     display-revert)
         shift
         display_revert "$@"
+        ;;
+
+    display-known-good)
+        display_known_good
+        ;;
+
+    display-restore-known-good)
+        display_restore_known_good
+        ;;
+
+    display-focus)
+        shift
+        display_focus "$@"
         ;;
 
     open-project)
@@ -446,7 +642,8 @@ case "${1:-help}" in
         printf '%s\n' \
             'Usage: chroma-settingsctl {' \
             'style-sync|system-json|display-json|display-preview|display-keep|' \
-            'display-revert|open-project|open-hyprland|open-nixos|' \
+            'display-revert|display-known-good|display-restore-known-good|' \
+            'display-focus|open-project|open-hyprland|open-nixos|' \
             'open-state|open-log|open-wallpaper|open-display-config|' \
             'reload-hyprland|restart-shell|health|snapshot|' \
             'copy-report|copy-monitors|open-backups}'
