@@ -367,22 +367,45 @@ Scope {
 
 
                     Rectangle {
+                        id: mediaProgressTrack
+
                         anchors {
                             left: parent.left
                             right: parent.right
                             bottom: parent.bottom
+                            leftMargin: shell.mediaProgressHorizontalInset
+                            rightMargin: shell.mediaProgressHorizontalInset
+                            bottomMargin: shell.mediaProgressBottomInset
                         }
 
-                        height: 4
+                        height: shell.mediaProgressHeight
+                        radius: shell.mediaProgressRadius
                         color: shell.surfaceHover
+                        clip: true
 
                         Rectangle {
+                            anchors {
+                                left: parent.left
+                                top: parent.top
+                                bottom: parent.bottom
+                            }
+
                             width:
                                 shell.hasMedia
-                                    ? parent.width * shell.mediaProgress
+                                    ? Math.max(
+                                        0,
+                                        Math.min(
+                                            parent.width,
+                                            parent.width * shell.mediaProgress
+                                        )
+                                    )
                                     : 0
 
-                            height: parent.height
+                            radius: Math.min(
+                                mediaProgressTrack.radius,
+                                width / 2,
+                                height / 2
+                            )
                             color: shell.contextAccent
 
                             Behavior on width {

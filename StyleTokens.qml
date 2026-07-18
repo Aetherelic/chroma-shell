@@ -151,6 +151,29 @@ QtObject {
     readonly property int spectrumGap:
         settings.density === "COMPACT" ? 2 : 3
 
+    // The media progress rail stays flush for the angular presets, but moves
+    // inside rounded modules so it follows their silhouette instead of cutting
+    // through the curved lower corners.
+    readonly property int mediaProgressHeight: 4
+    readonly property int mediaProgressHorizontalInset:
+        preset === "CAPSULE"
+            ? Math.round(clamp(settings.barHeight * 0.20, 12, 18))
+        : preset === "SOFT"
+            ? Math.round(clamp(settings.barHeight * 0.14, 8, 13))
+        : preset === "HYBRID"
+            ? Math.round(clamp(settings.barHeight * 0.10, 6, 10))
+        : 0
+    readonly property int mediaProgressBottomInset:
+        preset === "CAPSULE"
+            ? Math.round(clamp(settings.barHeight * 0.10, 5, 8))
+        : preset === "SOFT" ? 5
+        : preset === "HYBRID" ? 4
+        : 0
+    readonly property int mediaProgressRadius:
+        mediaProgressHorizontalInset > 0
+            ? Math.ceil(mediaProgressHeight / 2)
+            : 0
+
     readonly property int utilityWidth: Math.round(clamp(
         settings.barHeight * 0.78,
         44,

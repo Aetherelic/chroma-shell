@@ -99,6 +99,14 @@ ShellRoot {
     readonly property int spectrumWidth: styleTokens.spectrumWidth
     readonly property int spectrumHeight: styleTokens.spectrumHeight
     readonly property int spectrumGap: styleTokens.spectrumGap
+    readonly property int mediaProgressHeight:
+        styleTokens.mediaProgressHeight
+    readonly property int mediaProgressHorizontalInset:
+        styleTokens.mediaProgressHorizontalInset
+    readonly property int mediaProgressBottomInset:
+        styleTokens.mediaProgressBottomInset
+    readonly property int mediaProgressRadius:
+        styleTokens.mediaProgressRadius
     readonly property int utilityWidth: styleTokens.utilityWidth
     readonly property int utilityHoverWidth: styleTokens.utilityHoverWidth
     readonly property int clockWidth: styleTokens.clockWidth
