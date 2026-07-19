@@ -31,13 +31,18 @@ clipboard manager, notifications, control centre, diagnostics, and a cross-distr
 
 <div align="center">
 
-<img width="100%" src="./assets/readme/showcase-main.png" alt="CHROMA main preview" />
+<img width="2560" height="1440" alt="image" src="https://github.com/user-attachments/assets/3e9f0672-695b-41ce-b36a-95be5b1c3bc2" />
+
 
 <br /><br />
 
-<img width="32%" src="./assets/readme/showcase-settings.png" alt="CHROMA settings" />
-<img width="32%" src="./assets/readme/showcase-display.png" alt="CHROMA display manager" />
-<img width="32%" src="./assets/readme/showcase-installer.png" alt="CHROMA installer" />
+<img width="2560" height="1440" alt="image" src="https://github.com/user-attachments/assets/4642ee00-34cc-451d-b116-62e637d7fab3" />
+
+<img width="2562" height="1440" alt="image" src="https://github.com/user-attachments/assets/de837cbf-41a4-4ec9-a1d1-68ad81715c6f" />
+
+<img width="2559" height="1440" alt="image" src="https://github.com/user-attachments/assets/da45cbc5-b273-4040-85eb-47668214c397" />
+
+<img width="2560" height="1440" alt="image" src="https://github.com/user-attachments/assets/79bfd9d2-661b-4a2f-b064-dacd11c4edcf" />
 
 <br /><br />
 
