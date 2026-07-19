@@ -43,7 +43,46 @@ Scope {
             aboveWindows: true
             color: "transparent"
 
+            readonly property real leftClusterWidth:
+                shell.barHeight
+                + (shell.showWorkspaces
+                    ? shell.barGap + shell.workspaceRailWidth
+                    : 0)
+
+            readonly property int gapsBeforeMedia:
+                shell.showWorkspaces ? 3 : 2
+
+            readonly property real centeredMediaSpacerWidth:
+                shell.showMedia
+                    ? Math.max(
+                        0,
+                        (width - shell.mediaWidth) / 2
+                        - leftClusterWidth
+                        - gapsBeforeMedia * shell.barGap
+                    )
+                    : 12
+
+            Rectangle {
+                id: barBackdrop
+
+                anchors.fill: parent
+                visible: shell.barBackgroundMode === "SOLID"
+                z: 0
+
+                color: shell.backgroundAlt
+                radius: shell.moduleRadius
+                border.width: shell.borderWidth
+                border.color: shell.border
+
+                Behavior on color {
+                    ColorAnimation {
+                        duration: shell.animationDuration
+                    }
+                }
+            }
+
             RowLayout {
+                z: 1
                 anchors.fill: parent
                 spacing: shell.barGap
 
@@ -299,8 +338,20 @@ Scope {
                 }
 
                 Item {
-                    Layout.fillWidth: true
-                    Layout.minimumWidth: 12
+                    id: mediaCenterSpacer
+
+                    readonly property real resolvedWidth:
+                        shell.showMedia
+                            ? barWindow.centeredMediaSpacerWidth
+                            : 12
+
+                    Layout.fillWidth: !shell.showMedia
+                    Layout.preferredWidth: resolvedWidth
+                    Layout.minimumWidth: resolvedWidth
+                    Layout.maximumWidth:
+                        shell.showMedia
+                            ? resolvedWidth
+                            : 16777215
                 }
 
                 /*

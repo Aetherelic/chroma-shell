@@ -150,6 +150,10 @@ fi
 grep -Fq 'target: "chroma"' shell.qml
 grep -Fq 'path: "/etc/os-release"' DistroInfo.qml
 grep -Fq 'distroInfo.glyph' ChromaBar.qml
+grep -Fq 'centeredMediaSpacerWidth' ChromaBar.qml
+grep -Fq 'shell.barBackgroundMode === "SOLID"' ChromaBar.qml
+grep -Fq 'property string barBackgroundMode: "TRANSPARENT"' SettingsStore.qml
+grep -Fq 'label: "Bar background"' settings/pages/ShellPage.qml
 grep -Fq "hypr::emit_binding 'SUPER SHIFT' 'V'" installer/lib/hyprland.sh
 
 ./bin/chroma --version >/dev/null

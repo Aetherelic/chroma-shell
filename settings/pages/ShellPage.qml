@@ -135,6 +135,19 @@ Flickable {
             SettingsChoice {
                 shell: page.shell
                 Layout.fillWidth: true
+                label: "Bar background"
+                options: ["TRANSPARENT", "SOLID"]
+                current: settings.barBackgroundMode
+                accent: shell.uiPalette[0]
+                onOptionSelected: value => {
+                    settings.barBackgroundMode = value
+                    settings.scheduleSave()
+                }
+            }
+
+            SettingsChoice {
+                shell: page.shell
+                Layout.fillWidth: true
                 label: "Workspace geometry"
                 options: ["BLOCKS", "PILLS", "DOTS"]
                 current: settings.workspaceStyle

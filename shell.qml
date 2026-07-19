@@ -65,6 +65,8 @@ ShellRoot {
 
     readonly property string stylePreset: settingsStore.stylePreset
     readonly property string colorTreatment: settingsStore.colorTreatment
+    readonly property string barBackgroundMode:
+        settingsStore.barBackgroundMode
     readonly property string workspaceStyle: settingsStore.workspaceStyle
     readonly property int borderWidth: styleTokens.borderWidth
     readonly property int panelRadius: styleTokens.panelRadius
