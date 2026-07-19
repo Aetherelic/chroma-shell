@@ -4,8 +4,6 @@
 
 **A vibrant, kinetic Quickshell desktop shell for Hyprland.**
 
-<img src="https://img.shields.io/github/stars/Aetherelic/chroma-shell?style=for-the-badge&logo=github&color=ff5f91&labelColor=11111b" alt="Stars" />
-<img src="https://img.shields.io/github/forks/Aetherelic/chroma-shell?style=for-the-badge&logo=github&color=f6c85f&labelColor=11111b" alt="Forks" />
 <img src="https://img.shields.io/github/last-commit/Aetherelic/chroma-shell?style=for-the-badge&logo=git&color=63d6a3&labelColor=11111b" alt="Last commit" />
 <img src="https://img.shields.io/github/license/Aetherelic/chroma-shell?style=for-the-badge&color=8ea8ff&labelColor=11111b" alt="License" />
 
@@ -127,6 +125,6 @@ CHROMA is available under the [MIT License](./LICENSE).
 
 <div align="center">
 
-**Vibrant by design. Practical by default.**
+**Made with <3 by Aetherelic.**
 
 </div>
