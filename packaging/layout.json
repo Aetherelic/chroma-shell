@@ -1,0 +1,12 @@
+{
+  "schema": 1,
+  "project": "chroma-shell",
+  "versionFile": "VERSION",
+  "installRoot": "${XDG_DATA_HOME:-$HOME/.local/share}/chroma-shell",
+  "userBin": "${HOME}/.local/bin/chroma",
+  "settings": "${XDG_CONFIG_HOME:-$HOME/.config}/chroma/settings.json",
+  "hyprlandFragments": "${XDG_CONFIG_HOME:-$HOME/.config}/hypr/conf.d",
+  "state": "${XDG_STATE_HOME:-$HOME/.local/state}/chroma-shell",
+  "cache": "${XDG_CACHE_HOME:-$HOME/.cache}/chroma-shell",
+  "data": "${XDG_DATA_HOME:-$HOME/.local/share}/chroma-settings"
+}

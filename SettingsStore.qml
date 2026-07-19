@@ -70,12 +70,16 @@ Scope {
     property var favoriteApplications: []
     property var hiddenApplications: []
 
+    readonly property string configHome:
+        Quickshell.env("XDG_CONFIG_HOME").length > 0
+            ? Quickshell.env("XDG_CONFIG_HOME")
+            : Quickshell.env("HOME") + "/.config"
+
     readonly property string settingsPath:
-        Quickshell.env("HOME") + "/.config/chroma/settings.json"
+        configHome + "/chroma/settings.json"
 
     readonly property string backendPath:
-        Quickshell.env("HOME")
-        + "/Projects/chroma-shell/backend/chroma-settingsctl"
+        Quickshell.shellPath("backend/chroma-settingsctl")
 
     FileView {
         id: settingsFile

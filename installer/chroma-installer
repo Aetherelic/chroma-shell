@@ -1,0 +1,406 @@
+#!/usr/bin/env bash
+
+set -Eeuo pipefail
+
+installer_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+project_root="$(cd -- "$installer_root/.." && pwd -P)"
+
+# shellcheck disable=SC1091
+source "$installer_root/lib/ui.sh"
+# shellcheck disable=SC1091
+source "$installer_root/lib/system.sh"
+# shellcheck disable=SC1091
+source "$installer_root/lib/packages.sh"
+# shellcheck disable=SC1091
+source "$installer_root/lib/backup.sh"
+# shellcheck disable=SC1091
+source "$installer_root/lib/deploy.sh"
+# shellcheck disable=SC1091
+source "$installer_root/lib/hyprland.sh"
+# shellcheck disable=SC1091
+source "$installer_root/lib/validate.sh"
+
+CHROMA_SOURCE_ROOT="$project_root"
+CHROMA_REPO_URL="${CHROMA_REPO_URL:-https://github.com/Aetherelic/chroma-shell.git}"
+CHROMA_REF="${CHROMA_REF:-main}"
+CHROMA_ACTION='install'
+CHROMA_CHANNEL='development'
+CHROMA_DRY_RUN=0
+CHROMA_NON_INTERACTIVE=0
+CHROMA_SKIP_PACKAGES=0
+CHROMA_INSTALL_OPTIONAL=0
+CHROMA_START_NOW=1
+CHROMA_ENABLE_AUTOSTART=1
+CHROMA_ENABLE_BINDINGS=1
+CHROMA_ENABLE_CLIPBOARD=1
+CHROMA_REPLACE_BINDINGS=0
+CHROMA_PURGE_DATA=0
+CHROMA_UPGRADE=0
+CHROMA_SKIPPED_BINDINGS=()
+
+usage() {
+    cat <<'USAGE'
+CHROMA cross-distro installer
+
+Usage:
+  chroma-installer [options]
+
+Actions:
+  --action install      Install or upgrade CHROMA (default)
+  --action plan         Show the dependency and deployment plan
+  --action repair       Recheck dependencies and integration
+  --action update       Fetch the configured repository ref and upgrade
+  --action uninstall    Remove CHROMA-managed files
+
+Options:
+  --source PATH         Source repository to deploy
+  --repo URL            Repository recorded for future updates
+  --ref REF             Branch, tag, or commit recorded for updates
+  --dry-run             Show commands without changing the system
+  --non-interactive     Accept defaults without opening the menu
+  --no-packages         Do not install missing packages
+  --optional            Install optional tools
+  --no-start            Do not launch CHROMA after installation
+  --no-autostart        Do not add Hyprland autostart
+  --no-bindings         Do not add CHROMA shortcuts
+  --no-clipboard        Disable clipboard-manager dependencies
+  --replace-bindings    Write CHROMA shortcuts even when conflicts exist
+  --purge               With uninstall, also remove user settings and state
+  --help                Show this help
+USAGE
+}
+
+while (($#)); do
+    case "$1" in
+        --source)
+            test $# -ge 2 || { printf 'Missing value for --source\n' >&2; exit 2; }
+            CHROMA_SOURCE_ROOT="$(cd -- "$2" && pwd -P)"
+            shift 2
+            ;;
+        --repo)
+            test $# -ge 2 || { printf 'Missing value for --repo\n' >&2; exit 2; }
+            CHROMA_REPO_URL="$2"
+            shift 2
+            ;;
+        --ref)
+            test $# -ge 2 || { printf 'Missing value for --ref\n' >&2; exit 2; }
+            CHROMA_REF="$2"
+            shift 2
+            ;;
+        --action)
+            test $# -ge 2 || { printf 'Missing value for --action\n' >&2; exit 2; }
+            CHROMA_ACTION="$2"
+            shift 2
+            ;;
+        --dry-run) CHROMA_DRY_RUN=1; shift ;;
+        --non-interactive) CHROMA_NON_INTERACTIVE=1; shift ;;
+        --no-packages) CHROMA_SKIP_PACKAGES=1; shift ;;
+        --optional) CHROMA_INSTALL_OPTIONAL=1; shift ;;
+        --no-start) CHROMA_START_NOW=0; shift ;;
+        --no-autostart) CHROMA_ENABLE_AUTOSTART=0; shift ;;
+        --no-bindings) CHROMA_ENABLE_BINDINGS=0; shift ;;
+        --no-clipboard) CHROMA_ENABLE_CLIPBOARD=0; shift ;;
+        --replace-bindings) CHROMA_REPLACE_BINDINGS=1; shift ;;
+        --purge) CHROMA_PURGE_DATA=1; shift ;;
+        --upgrade) CHROMA_UPGRADE=1; shift ;;
+        --help|-h) usage; exit 0 ;;
+        *) printf 'Unknown option: %s\n' "$1" >&2; usage >&2; exit 2 ;;
+    esac
+done
+
+case "$CHROMA_REF" in
+    *alpha*|*beta*|*rc*) CHROMA_CHANNEL='preview' ;;
+    v[0-9]*|refs/tags/v[0-9]*) CHROMA_CHANNEL='stable' ;;
+    *) CHROMA_CHANNEL='development' ;;
+esac
+
+export CHROMA_SOURCE_ROOT CHROMA_REPO_URL CHROMA_REF CHROMA_ACTION \
+    CHROMA_CHANNEL CHROMA_DRY_RUN CHROMA_NON_INTERACTIVE \
+    CHROMA_SKIP_PACKAGES CHROMA_INSTALL_OPTIONAL CHROMA_START_NOW \
+    CHROMA_ENABLE_AUTOSTART CHROMA_ENABLE_BINDINGS CHROMA_ENABLE_CLIPBOARD \
+    CHROMA_REPLACE_BINDINGS CHROMA_PURGE_DATA CHROMA_UPGRADE
+
+ui::init
+system::require_user
+system::detect
+deploy::paths
+hypr::paths
+backup::paths
+
+CHROMA_SOURCE_VERSION="$(cat "$CHROMA_SOURCE_ROOT/VERSION" 2>/dev/null || printf 'development')"
+export CHROMA_SOURCE_VERSION
+
+log_root="${XDG_STATE_HOME:-$HOME/.local/state}/chroma-installer"
+mkdir -p "$log_root"
+CHROMA_INSTALL_LOG="$log_root/install.log"
+export CHROMA_INSTALL_LOG
+if test "${CHROMA_DISABLE_TEE:-0}" -ne 1; then
+    exec > >(tee -a "$CHROMA_INSTALL_LOG") 2>&1
+fi
+
+installer::failure() {
+    local status=$? line="${BASH_LINENO[0]:-unknown}"
+    ui::error "Installer stopped at line $line with status $status."
+    if test -n "${CHROMA_LAST_BACKUP:-}"; then
+        printf 'Manual backup retained at: %s\n' "$CHROMA_LAST_BACKUP"
+    fi
+    printf 'Log: %s\n' "$CHROMA_INSTALL_LOG"
+    printf 'No automatic rollback was performed.\n'
+    exit "$status"
+}
+trap installer::failure ERR
+
+installer::summary() {
+    local session='not active' monitor conflicts
+    system::hyprland_session && session='active'
+    monitor="$(system::focused_monitor 2>/dev/null || true)"
+    conflicts="$(system::shell_conflicts | paste -sd ', ' - 2>/dev/null || true)"
+
+    ui::header
+    ui::kv 'Distribution' "$CHROMA_DISTRO_NAME"
+    ui::kv 'Architecture' "$CHROMA_ARCH"
+    ui::kv 'Package manager' "$CHROMA_PACKAGE_MANAGER"
+    ui::kv 'Hyprland session' "$session"
+    ui::kv 'Focused monitor' "${monitor:-not detected}"
+    ui::kv 'CHROMA version' "$CHROMA_SOURCE_VERSION"
+    ui::kv 'Channel / ref' "$CHROMA_CHANNEL / $CHROMA_REF"
+    ui::kv 'Install root' "$CHROMA_INSTALL_ROOT"
+    ui::kv 'Other surfaces' "${conflicts:-none detected}"
+    ui::footer
+
+    if test "$CHROMA_DISTRO" = nixos; then
+        ui::warn 'NixOS is using quick user-profile mode in this installer revision.'
+        ui::note 'The declarative flake, NixOS module and Home Manager module are the next installer pull request.'
+    fi
+}
+
+installer::components() {
+    ui::section 'Components'
+    ui::status ok 'CHROMA shell' 'required'
+    ui::status "$(test "$CHROMA_ENABLE_CLIPBOARD" -eq 1 && printf ok || printf skip)" 'Clipboard manager' "$(test "$CHROMA_ENABLE_CLIPBOARD" -eq 1 && printf '%s' enabled || printf '%s' disabled)"
+    ui::status ok 'Settings suite' 'enabled'
+    ui::status ok 'Display manager' 'enabled'
+    ui::status ok 'Applications manager' 'enabled'
+    ui::status ok 'Recovery tools' 'enabled'
+    ui::status "$(test "$CHROMA_ENABLE_BINDINGS" -eq 1 && printf ok || printf skip)" 'Hyprland shortcuts' "$(test "$CHROMA_ENABLE_BINDINGS" -eq 1 && printf '%s' enabled || printf '%s' disabled)"
+    ui::status "$(test "$CHROMA_ENABLE_AUTOSTART" -eq 1 && printf ok || printf skip)" 'Autostart' "$(test "$CHROMA_ENABLE_AUTOSTART" -eq 1 && printf '%s' enabled || printf '%s' disabled)"
+    ui::status "$(test "$CHROMA_INSTALL_OPTIONAL" -eq 1 && printf optional || printf skip)" 'Optional tools' "$(test "$CHROMA_INSTALL_OPTIONAL" -eq 1 && printf '%s' install || printf '%s' 'not selected')"
+}
+
+installer::menu() {
+    test "$CHROMA_NON_INTERACTIVE" -eq 0 || return 0
+    local answer
+    while true; do
+        ui::clear
+        installer::summary
+        installer::components
+        packages::scan
+        printf '\n  [1] Toggle optional tools\n'
+        printf '  [2] Toggle clipboard manager\n'
+        printf '  [3] Toggle CHROMA shortcuts\n'
+        printf '  [4] Toggle autostart\n'
+        printf '  [5] Toggle start now\n'
+        printf '  [6] Toggle replacing conflicting shortcuts\n'
+        printf '\n  %s[I] INSTALL%s   [D] DRY RUN   [Q] QUIT\n\n' "$c_cyan" "$c_reset"
+        read -r -p '  Selection: ' answer || answer='q'
+        case "${answer,,}" in
+            1) CHROMA_INSTALL_OPTIONAL=$((1 - CHROMA_INSTALL_OPTIONAL)) ;;
+            2) CHROMA_ENABLE_CLIPBOARD=$((1 - CHROMA_ENABLE_CLIPBOARD)) ;;
+            3) CHROMA_ENABLE_BINDINGS=$((1 - CHROMA_ENABLE_BINDINGS)) ;;
+            4) CHROMA_ENABLE_AUTOSTART=$((1 - CHROMA_ENABLE_AUTOSTART)) ;;
+            5) CHROMA_START_NOW=$((1 - CHROMA_START_NOW)) ;;
+            6) CHROMA_REPLACE_BINDINGS=$((1 - CHROMA_REPLACE_BINDINGS)) ;;
+            i|install|'') break ;;
+            d) CHROMA_DRY_RUN=1; break ;;
+            q|quit) exit 0 ;;
+        esac
+    done
+    export CHROMA_INSTALL_OPTIONAL CHROMA_ENABLE_CLIPBOARD \
+        CHROMA_ENABLE_BINDINGS CHROMA_ENABLE_AUTOSTART CHROMA_START_NOW \
+        CHROMA_REPLACE_BINDINGS CHROMA_DRY_RUN
+}
+
+installer::preflight() {
+    system::supported || {
+        ui::error "Unsupported distribution: $CHROMA_DISTRO_NAME"
+        ui::note 'Supported backends: NixOS, Arch-based, Fedora-based and Ubuntu-based systems.'
+        return 1
+    }
+    system::hyprland_available || {
+        ui::error 'Hyprland is required and hyprctl was not found.'
+        ui::note 'Install and configure Hyprland before installing CHROMA.'
+        return 1
+    }
+    if ! system::hyprland_session; then
+        ui::warn 'No active Hyprland session was detected; CHROMA will install but will not start now.'
+        CHROMA_START_NOW=0
+        export CHROMA_START_NOW
+    fi
+    deploy::validate_source "$CHROMA_SOURCE_ROOT"
+    validate::shell_source "$CHROMA_SOURCE_ROOT"
+    packages::load_adapter "$CHROMA_SOURCE_ROOT"
+}
+
+installer::plan() {
+    installer::preflight
+    installer::summary
+    installer::components
+    packages::scan
+    printf '\n'
+    ui::note "Required packages missing: ${#MISSING_REQUIRED_PACKAGES[@]}"
+    ui::note "Optional packages available: ${#MISSING_OPTIONAL_PACKAGES[@]}"
+}
+
+installer::install() {
+    local total=9 runtime_ok=1
+    installer::preflight
+    if test "$CHROMA_NON_INTERACTIVE" -eq 1; then
+        installer::summary
+        packages::scan
+    else
+        installer::menu
+    fi
+
+    printf '\n'
+    ui::step 1 "$total" 'System and source preflight' DONE
+    backup::create
+    ui::step 2 "$total" 'Creating manual recovery backup' DONE
+
+    packages::install_required
+    packages::install_optional
+    ui::step 3 "$total" 'Installing missing dependencies' DONE
+
+    if ! packages::postcheck; then
+        ui::error 'Required CHROMA capabilities are still unavailable.'
+        ui::note 'Install the reported commands or rerun without --no-packages.'
+        return 1
+    fi
+    ui::step 4 "$total" 'Verifying installed capabilities' DONE
+
+    deploy::install "$CHROMA_SOURCE_ROOT"
+    ui::step 5 "$total" 'Deploying CHROMA into XDG paths' DONE
+
+    hypr::write_fragment
+    hypr::ensure_source
+    ui::step 6 "$total" 'Writing isolated Hyprland integration' DONE
+
+    hypr::reload
+    ui::step 7 "$total" 'Reloading compositor integration' DONE
+
+    validate::installed_files
+    validate::doctor
+    ui::step 8 "$total" 'Running diagnostics' DONE
+
+    if ! validate::runtime; then
+        runtime_ok=0
+    fi
+    ui::step 9 "$total" 'Starting the complete CHROMA shell' "$(test "$runtime_ok" -eq 1 && printf DONE || printf WARN)"
+
+    printf '\n'
+    if test "$CHROMA_DRY_RUN" -eq 1; then
+        ui::success 'CHROMA dry run completed; no system changes were made.'
+    elif test "$runtime_ok" -eq 1; then
+        ui::success 'CHROMA installation completed and the shell is running.'
+    else
+        ui::warn 'CHROMA was installed, but runtime verification did not pass.'
+        printf 'Inspect: %s log\n' "$CHROMA_CLI_PATH"
+        printf 'Backup: %s\n' "${CHROMA_LAST_BACKUP:-not created}"
+    fi
+    printf 'CLI: %s\n' "$CHROMA_CLI_PATH"
+    printf 'Log: %s\n' "$CHROMA_INSTALL_LOG"
+    if ((${#CHROMA_SKIPPED_BINDINGS[@]} > 0)); then
+        printf 'Skipped conflicting shortcuts: %s\n' "${CHROMA_SKIPPED_BINDINGS[*]}"
+    fi
+}
+
+installer::repair() {
+    CHROMA_NON_INTERACTIVE=1
+    export CHROMA_NON_INTERACTIVE
+    if test -f "$CHROMA_INSTALL_CONF"; then
+        # shellcheck disable=SC1090
+        source "$CHROMA_INSTALL_CONF"
+        CHROMA_SOURCE_ROOT="${CHROMA_ROOT:-$CHROMA_INSTALL_ROOT}"
+    fi
+    installer::preflight
+    packages::scan
+    backup::create
+    packages::install_required
+    packages::postcheck || {
+        ui::error 'Repair could not restore every required capability.'
+        return 1
+    }
+    deploy::write_install_conf
+    hypr::write_fragment
+    hypr::ensure_source
+    hypr::reload
+    validate::all
+    ui::success 'CHROMA repair completed.'
+}
+
+installer::update() {
+    deploy::paths
+    local repo="$CHROMA_REPO_URL" ref="$CHROMA_REF" temporary status=0
+    if test -f "$CHROMA_INSTALL_CONF"; then
+        # shellcheck disable=SC1090
+        source "$CHROMA_INSTALL_CONF"
+        repo="${CHROMA_REPO_URL:-$repo}"
+        ref="${CHROMA_REF:-$ref}"
+    fi
+    command -v git >/dev/null 2>&1 || { ui::error 'Git is required for updates.'; return 1; }
+    temporary="$(mktemp -d -t chroma-update.XXXXXX)"
+    git clone --filter=blob:none --no-checkout --quiet "$repo" "$temporary/repository"
+    git -C "$temporary/repository" fetch --quiet --depth 1 origin "$ref"
+    git -C "$temporary/repository" checkout --quiet --detach FETCH_HEAD
+    "$temporary/repository/installer/chroma-installer" \
+        --source "$temporary/repository" \
+        --repo "$repo" \
+        --ref "$ref" \
+        --action install \
+        --non-interactive \
+        --upgrade || status=$?
+    rm -rf -- "$temporary"
+    return "$status"
+}
+
+installer::uninstall() {
+    deploy::paths
+    hypr::paths
+    if test "$CHROMA_NON_INTERACTIVE" -ne 1; then
+        ui::warn 'This removes only CHROMA-managed program files and Hyprland integration.'
+        ui::confirm 'Continue with uninstall?' no || return 0
+        if test "$CHROMA_PURGE_DATA" -eq 1; then
+            ui::confirm 'Also permanently remove CHROMA settings, state, cache and snapshots?' no || CHROMA_PURGE_DATA=0
+        fi
+    fi
+
+    backup::create
+    if test -x "$CHROMA_CLI_PATH" && test "$CHROMA_DRY_RUN" -eq 0; then
+        "$CHROMA_CLI_PATH" stop >/dev/null 2>&1 || true
+    fi
+    hypr::remove
+    hypr::reload
+    deploy::remove
+
+    if test "$CHROMA_PURGE_DATA" -eq 1; then
+        if test "$CHROMA_DRY_RUN" -eq 1; then
+            printf '  Would purge CHROMA personal data\n'
+        else
+            rm -rf -- \
+                "${XDG_CONFIG_HOME:-$HOME/.config}/chroma" \
+                "${XDG_STATE_HOME:-$HOME/.local/state}/chroma-shell" \
+                "${XDG_CACHE_HOME:-$HOME/.cache}/chroma-shell" \
+                "${XDG_DATA_HOME:-$HOME/.local/share}/chroma-settings"
+        fi
+    fi
+    ui::success 'CHROMA uninstall completed.'
+    printf 'Manual backup retained at: %s\n' "${CHROMA_LAST_BACKUP:-unknown}"
+}
+
+case "$CHROMA_ACTION" in
+    install) installer::install ;;
+    plan) installer::plan ;;
+    repair) installer::repair ;;
+    update) installer::update ;;
+    uninstall) installer::uninstall ;;
+    *) ui::error "Unknown action: $CHROMA_ACTION"; usage >&2; exit 2 ;;
+esac

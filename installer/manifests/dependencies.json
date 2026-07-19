@@ -1,0 +1,43 @@
+{
+  "schema": 1,
+  "minimums": {
+    "quickshell": "0.3.0"
+  },
+  "requiredCapabilities": [
+    "hyprland",
+    "quickshell",
+    "json",
+    "clipboard",
+    "audio",
+    "network",
+    "bluetooth",
+    "notifications",
+    "screenshots"
+  ],
+  "distros": {
+    "arch": {
+      "quickshell": "quickshell",
+      "packages": ["git", "curl", "jq", "wl-clipboard", "cliphist", "cava", "brightnessctl", "networkmanager", "bluez-utils", "wireplumber", "libnotify", "grim", "slurp", "playerctl"]
+    },
+    "fedora": {
+      "quickshell": "quickshell",
+      "repository": "copr:copr.fedorainfracloud.org:errornointernet:quickshell",
+      "packages": ["git", "curl", "jq", "wl-clipboard", "cliphist", "cava", "brightnessctl", "NetworkManager", "bluez", "wireplumber", "libnotify", "grim", "slurp", "playerctl"]
+    },
+    "ubuntu": {
+      "quickshell": "quickshell",
+      "repository": "ppa:avengemedia/danklinux",
+      "packages": ["git", "curl", "jq", "wl-clipboard", "cliphist", "cava", "brightnessctl", "network-manager", "bluez", "wireplumber", "libnotify-bin", "grim", "slurp", "playerctl"]
+    },
+    "nixos": {
+      "mode": "quick-user-profile",
+      "packages": ["quickshell", "jq", "wl-clipboard", "cliphist", "cava", "brightnessctl", "libnotify", "grim", "slurp", "playerctl"]
+    }
+  },
+  "optional": {
+    "screenshotEditor": "swappy",
+    "screenRecording": "wf-recorder",
+    "calculator": "qalc",
+    "wallpaper": "swww"
+  }
+}
