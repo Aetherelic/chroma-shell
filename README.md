@@ -1,97 +1,94 @@
-# CHROMA Shell
+<div align="center">
 
-A sharp, kinetic Quickshell desktop for Hyprland. CHROMA uses solid dark surfaces, hard geometry, curated neon palettes, compact panels and contextual interactions instead of glassmorphism.
+<img width="100%" alt="CHROMA banner" src="./assets/readme/chroma-banner.gif" />
 
-## Current baseline
+<br />
 
-- Compact centred media context with a real PipeWire/CAVA spectrum
-- Compact Spotlight-style application launcher
-- Expandable media drawer with MPRIS controls
-- PipeWire, Wi-Fi, Bluetooth and session control centre
-- Native system tray and notification history
-- Notification toasts, urgency states and persistent Do Not Disturb
-- Fourteen live-switching curated themes
-- Volume, mute and brightness OSDs
-- Multi-monitor targeting: shell UI on `DP-1`
+<img src="https://img.shields.io/github/stars/Aetherelic/chroma-shell?style=for-the-badge&color=ff5ea8&labelColor=11111b" />
+<img src="https://img.shields.io/github/forks/Aetherelic/chroma-shell?style=for-the-badge&color=f9c74f&labelColor=11111b" />
+<img src="https://img.shields.io/github/last-commit/Aetherelic/chroma-shell?style=for-the-badge&color=57cc99&labelColor=11111b" />
+<img src="https://img.shields.io/github/license/Aetherelic/chroma-shell?style=for-the-badge&color=64b5f6&labelColor=11111b" />
 
-## Controls
+<br />
 
-| Shortcut | Action |
-|---|---|
-| `Alt + Space` | Application launcher |
-| `Super + I` | Control centre |
-| `Super + N` | Notification history |
-| `Super + Shift + T` | Theme panel |
-| Media keys | Playback, volume and brightness |
+<img src="https://img.shields.io/badge/Hyprland-Shell-8bd5ff?style=flat-square&labelColor=11111b" />
+<img src="https://img.shields.io/badge/Quickshell-QML_UI-c792ea?style=flat-square&labelColor=11111b" />
+<img src="https://img.shields.io/badge/Linux-NixOS%20%7C%20Arch%20%7C%20Fedora%20%7C%20Ubuntu-ffb86c?style=flat-square&labelColor=11111b" />
+<img src="https://img.shields.io/badge/Status-Alpha-ff5ea8?style=flat-square&labelColor=11111b" />
 
-The theme tile in the bar opens the palette panel. Right-clicking it cycles to the next theme.
+<h1>CHROMA</h1>
+<p><b>A sharp, colourful, kinetic desktop shell for Hyprland.</b></p>
+<p>
+A vibrant Quickshell-powered interface with a themed bar, live settings app, display manager, launcher,
+clipboard manager, notifications, control centre, diagnostics, and a cross-distro installer.
+</p>
 
-## Runtime
+</div>
 
-```bash
-~/.local/bin/chroma-shell restart
-~/.local/bin/chroma-shell status
-~/.local/bin/chroma-shell log
-chroma-healthcheck
-```
+---
 
-## Structure
+## ✦ Preview
 
-```text
-shell.qml
-├── ChromaBar.qml
-├── ChromaLauncher.qml
-├── ContextDrawer.qml
-├── ControlCentre.qml
-├── NotificationCentre.qml
-├── StateStore.qml
-├── ThemePanel.qml
-└── ChromaOsd.qml
-```
+<div align="center">
 
-Settings are persisted in Quickshell's CHROMA state directory. No generated store paths are committed.
+<img width="100%" src="./assets/readme/showcase-main.png" alt="CHROMA main preview" />
 
-## Development shell
+<br /><br />
 
-```bash
-nix develop
-```
+<img width="32%" src="./assets/readme/showcase-settings.png" alt="CHROMA settings" />
+<img width="32%" src="./assets/readme/showcase-display.png" alt="CHROMA display manager" />
+<img width="32%" src="./assets/readme/showcase-installer.png" alt="CHROMA installer" />
 
-Then restart CHROMA after editing QML:
+<br /><br />
 
-```bash
-~/.local/bin/chroma-shell restart
-```
+<img width="49%" src="./assets/readme/chroma-themes.gif" alt="Theme switching preview" />
+<img width="49%" src="./assets/readme/chroma-launcher.gif" alt="Launcher preview" />
 
-## Audio spectrum
+</div>
 
-CHROMA consumes CAVA raw ASCII frames from PipeWire. The spectrum is audio-driven; when playback is silent, the bars settle to their baseline rather than running a synthetic animation.
+---
 
-## Theme library
+## ✦ Features
 
-CHROMA ships with fourteen live themes. The original Voltage, Toxic,
-Ultraviolet, Solar Flare, Aqua Circuit, and Candy Static palettes are joined
-by Catppuccin Mocha, Gruvbox Dark, Tokyo Night, Nord, Rosé Pine, Kanagawa,
-Dracula, and Everforest Dark. A theme changes every CHROMA surface, border,
-text role, state colour, and the real CAVA spectrum gradient together.
+- **Kinetic top bar** with style presets, live theming, media, workspaces, utility modules, and system info
+- **Style Studio** with sharp, soft, hybrid, technical, and capsule geometry modes
+- **Settings app** with pages for:
+  - Wi-Fi
+  - Bluetooth
+  - Display
+  - Widgets
+  - Applications
+  - Config / Recovery
+  - Shell Settings
+  - About System
+  - Credits
+- **Safe display manager** with preview + keep/revert flow
+- **Applications manager** with launcher favourites and autostart controls
+- **Clipboard manager** with searchable history and private mode
+- **Control centre**, **notifications**, **OSDs**, and **theme browser**
+- **Config snapshots**, diagnostics, restore tools, and Git-aware recovery
+- **Cross-distro installer** for NixOS, Arch, Fedora, and Ubuntu
+- **CLI tooling** for launching, managing, validating, and diagnosing CHROMA
 
-Open the selector with `Super+Shift+T`, or right-click the palette button to
-cycle. The selected theme persists across shell restarts.
+---
 
-<!-- CHROMA-INSTALLER -->
-## Installer preview
+## ✦ Why CHROMA?
 
-CHROMA includes a pure-Bash cross-distribution installer for Hyprland systems on NixOS, Arch, Fedora and Ubuntu.
+CHROMA is built to feel **bold, expressive, and interactive** — not flat, generic, or glassy.
 
-```bash
-./install.sh --local --dry-run
-./install.sh --local
-```
+It focuses on:
 
-After this branch is merged, remote installation uses:
+- **strong visual identity**
+- **high customisability**
+- **theme cohesion**
+- **practical desktop tooling**
+- **stable day-to-day usability**
+
+---
+
+## ✦ Install
+
+### Quick install
 
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/Aetherelic/chroma-shell/main/install.sh)
-```
-
-See [`docs/INSTALL.md`](docs/INSTALL.md) for deployment paths, safety behaviour, NixOS quick mode, repair, update and uninstall commands.
