@@ -15,7 +15,7 @@ Scope {
         { index: "01", name: "Wi-Fi", detail: "NETWORK" },
         { index: "02", name: "Bluetooth", detail: "DEVICES" },
         { index: "03", name: "Display", detail: "OUTPUTS" },
-        { index: "04", name: "Widgets", detail: "COMPOSITION" },
+        { index: "04", name: "Widgets", detail: "DESKTOP" },
         { index: "05", name: "Applications", detail: "DEFAULTS" },
         { index: "06", name: "Config", detail: "MAINTENANCE" },
         { index: "07", name: "Shell Settings", detail: "CHROMA" },

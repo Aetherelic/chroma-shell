@@ -10,6 +10,10 @@ required_files=(
     install.sh
     preview.sh
     SettingsStore.qml
+    desktop/WidgetStore.qml
+    desktop/DesktopWidgets.qml
+    desktop/WidgetFrame.qml
+    backend/chroma-widget-stats
     backend/chroma-settingsctl
     bin/chroma
     bin/chroma-wallpaper
@@ -50,10 +54,15 @@ fi
 
 runtime_path_files=(
     SettingsStore.qml
+    desktop/WidgetStore.qml
+    desktop/DesktopWidgets.qml
+    desktop/WidgetFrame.qml
+    backend/chroma-widget-stats
     shell.qml
     preview.sh
     backend/chroma-settingsctl
     backend/chroma-clipboardctl
+    backend/chroma-widget-stats
 )
 
 if grep -nE '(\$HOME|\$home)/Projects/chroma-shell|/home/[^/]+/Projects/chroma-shell' \
