@@ -1,0 +1,42 @@
+name: Installer validation
+
+on:
+  push:
+    paths:
+      - 'install.sh'
+      - 'installer/**'
+      - 'bin/chroma'
+      - 'bin/chroma-wallpaper'
+      - 'preview.sh'
+      - '.github/workflows/installer.yml'
+  pull_request:
+    paths:
+      - 'install.sh'
+      - 'installer/**'
+      - 'bin/chroma'
+      - 'bin/chroma-wallpaper'
+      - 'preview.sh'
+      - '.github/workflows/installer.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate Bash syntax
+        run: |
+          find installer -type f \( -name '*.sh' -o -name 'chroma-installer' \) -print0 \
+            | xargs -0 -n1 bash -n
+          bash -n install.sh
+          bash -n preview.sh
+          bash -n bin/chroma
+          bash -n bin/chroma-wallpaper
+      - name: Validate manifests
+        run: |
+          jq -e . installer/manifests/dependencies.json >/dev/null
+          jq -e . installer/manifests/components.json >/dev/null
+      - name: Run installer smoke tests
+        run: installer/tests/smoke.sh

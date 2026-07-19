@@ -1,0 +1,108 @@
+#!/usr/bin/env bash
+
+set -Eeuo pipefail
+
+home="${HOME:?HOME is not set}"
+config_root="${XDG_CONFIG_HOME:-$home/.config}/chroma-wallpaper"
+config_file="$config_root/config"
+default_directory="$home/Pictures/Wallpapers"
+mkdir -p "$config_root"
+
+backend() {
+    if command -v swww >/dev/null 2>&1; then printf 'swww\n'; return; fi
+    if command -v awww >/dev/null 2>&1; then printf 'awww\n'; return; fi
+    if command -v hyprctl >/dev/null 2>&1 && pgrep -x hyprpaper >/dev/null 2>&1; then printf 'hyprpaper\n'; return; fi
+    return 1
+}
+
+ensure_daemon() {
+    case "$(backend 2>/dev/null || true)" in
+        swww)
+            if ! swww query >/dev/null 2>&1; then
+                if command -v swww-daemon >/dev/null 2>&1; then
+                    nohup swww-daemon >/dev/null 2>&1 &
+                else
+                    swww init >/dev/null 2>&1 || true
+                fi
+                sleep 0.4
+            fi
+            ;;
+        awww)
+            if ! awww query >/dev/null 2>&1; then
+                nohup awww-daemon >/dev/null 2>&1 &
+                sleep 0.4
+            fi
+            ;;
+    esac
+}
+
+set_wallpaper() {
+    local file="$1" output="${2:-}"
+    file="$(readlink -f -- "$file" 2>/dev/null || true)"
+    test -f "$file" || { printf 'Wallpaper not found: %s\n' "$1" >&2; return 1; }
+    ensure_daemon
+    case "$(backend 2>/dev/null || true)" in
+        swww)
+            if test -n "$output"; then
+                swww img --outputs "$output" "$file" --transition-type grow --transition-duration 0.7
+            else
+                swww img "$file" --transition-type grow --transition-duration 0.7
+            fi
+            ;;
+        awww)
+            if test -n "$output"; then
+                awww img -o "$output" "$file" --transition-type grow --transition-duration 0.7
+            else
+                awww img "$file" --transition-type grow --transition-duration 0.7
+            fi
+            ;;
+        hyprpaper)
+            hyprctl hyprpaper preload "$file" >/dev/null
+            hyprctl hyprpaper wallpaper "${output:-},$file" >/dev/null
+            ;;
+        *)
+            printf 'No wallpaper backend found. Install swww, awww, or run hyprpaper.\n' >&2
+            return 1
+            ;;
+    esac
+    printf 'wallpaper=%q\n' "$file" > "$config_file"
+    printf 'Wallpaper set: %s\n' "$file"
+}
+
+select_wallpaper() {
+    local directory="${1:-$default_directory}" choice
+    test -d "$directory" || { printf 'Wallpaper directory not found: %s\n' "$directory" >&2; return 1; }
+    mapfile -t wallpapers < <(find "$directory" -type f \( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.webp' \) | sort)
+    test ${#wallpapers[@]} -gt 0 || { printf 'No wallpapers found in %s\n' "$directory" >&2; return 1; }
+    if command -v rofi >/dev/null 2>&1; then
+        choice="$(printf '%s\n' "${wallpapers[@]}" | rofi -dmenu -i -p 'CHROMA//WALLPAPER')"
+    elif command -v fzf >/dev/null 2>&1; then
+        choice="$(printf '%s\n' "${wallpapers[@]}" | fzf --prompt='CHROMA//WALLPAPER > ')"
+    else
+        PS3='Select wallpaper: '
+        select choice in "${wallpapers[@]}"; do test -n "$choice" && break; done
+    fi
+    test -n "${choice:-}" && set_wallpaper "$choice"
+}
+
+case "${1:-help}" in
+    set) test $# -ge 2 || { printf 'Usage: chroma-wallpaper set FILE [OUTPUT]\n' >&2; exit 2; }; set_wallpaper "$2" "${3:-}" ;;
+    select) select_wallpaper "${2:-$default_directory}" ;;
+    current)
+        if test -f "$config_file"; then
+            # shellcheck disable=SC1090
+            source "$config_file"
+            printf '%s\n' "${wallpaper:-}"
+        fi
+        ;;
+    backend) backend || printf 'none\n' ;;
+    doctor)
+        printf 'backend=%s\n' "$(backend 2>/dev/null || printf none)"
+        printf 'directory=%s\n' "$default_directory"
+        printf 'current=%s\n' "$($0 current 2>/dev/null || true)"
+        ;;
+    help|--help|-h)
+        printf 'Usage: chroma-wallpaper {set FILE [OUTPUT]|select [DIR]|current|backend|doctor}\n'
+        ;;
+    *) printf 'Unknown command: %s\n' "$1" >&2; exit 2 ;;
+esac

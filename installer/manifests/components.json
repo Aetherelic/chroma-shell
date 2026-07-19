@@ -1,0 +1,12 @@
+{
+  "schema": 1,
+  "components": {
+    "core": {"required": true, "default": true},
+    "clipboard": {"required": false, "default": true},
+    "screenshots": {"required": false, "default": true},
+    "wallpaper": {"required": false, "default": true},
+    "hyprlandBindings": {"required": false, "default": true},
+    "autostart": {"required": false, "default": true},
+    "optionalTools": {"required": false, "default": false}
+  }
+}

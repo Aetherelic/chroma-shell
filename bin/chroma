@@ -1,0 +1,190 @@
+#!/usr/bin/env bash
+
+set -u
+set -o pipefail
+
+home="${HOME:?HOME is not set}"
+config_home="${XDG_CONFIG_HOME:-$home/.config}"
+data_home="${XDG_DATA_HOME:-$home/.local/share}"
+install_conf="$config_home/chroma/install.conf"
+
+if test -f "$install_conf"; then
+    # The installer writes this file with shell-safe %q values.
+    # shellcheck disable=SC1090
+    source "$install_conf"
+fi
+
+usage() {
+    cat <<'USAGE'
+CHROMA command line
+
+Shell:
+  chroma start|stop|restart|status
+  chroma log [--follow]
+
+Surfaces:
+  chroma launcher
+  chroma clipboard [open|close|clear|private-on|private-off]
+  chroma control
+  chroma notifications
+  chroma themes
+  chroma settings
+  chroma theme-next
+  chroma wallpaper [select|set FILE|current]
+
+Maintenance:
+  chroma doctor [--json]
+  chroma update
+  chroma repair
+  chroma uninstall [--purge]
+  chroma install-plan
+  chroma paths
+  chroma version
+USAGE
+}
+
+resolve_root() {
+    local source candidate
+
+    if test -n "${CHROMA_ROOT:-}" && test -f "$CHROMA_ROOT/shell.qml"; then
+        cd -- "$CHROMA_ROOT" && pwd -P
+        return
+    fi
+
+    source="${BASH_SOURCE[0]}"
+    while test -L "$source"; do
+        candidate="$(readlink -- "$source")"
+        case "$candidate" in
+            /*) source="$candidate" ;;
+            *) source="$(dirname -- "$source")/$candidate" ;;
+        esac
+    done
+
+    candidate="$(cd -- "$(dirname -- "$source")/.." 2>/dev/null && pwd -P || true)"
+    if test -n "$candidate" && test -f "$candidate/shell.qml"; then
+        printf '%s\n' "$candidate"
+        return
+    fi
+
+    candidate="$data_home/chroma-shell"
+    if test -f "$candidate/shell.qml"; then
+        cd -- "$candidate" && pwd -P
+        return
+    fi
+    return 1
+}
+
+find_quickshell() {
+    local candidate
+    if test -n "${CHROMA_QUICKSHELL_BIN:-}" && test -x "$CHROMA_QUICKSHELL_BIN"; then
+        printf '%s\n' "$CHROMA_QUICKSHELL_BIN"
+        return
+    fi
+    for candidate in quickshell qs; do
+        if command -v "$candidate" >/dev/null 2>&1; then
+            command -v "$candidate"
+            return
+        fi
+    done
+    for candidate in \
+        "$home/.nix-profile/bin/quickshell" \
+        "/etc/profiles/per-user/${USER:-$(id -un)}/bin/quickshell" \
+        /run/current-system/sw/bin/quickshell
+    do
+        test -x "$candidate" && { printf '%s\n' "$candidate"; return; }
+    done
+    return 1
+}
+
+root="$(resolve_root 2>/dev/null || true)"
+if test -z "$root"; then
+    printf 'CHROMA installation could not be located.\n' >&2
+    printf 'Set CHROMA_ROOT or reinstall CHROMA.\n' >&2
+    exit 1
+fi
+
+preview="$root/preview.sh"
+qs_bin="$(find_quickshell 2>/dev/null || true)"
+installer="$root/installer/chroma-installer"
+
+ipc() {
+    if test -z "$qs_bin"; then
+        printf 'Quickshell is not available. Run: chroma doctor\n' >&2
+        return 1
+    fi
+    "$qs_bin" -p "$root/shell.qml" ipc call chroma "$@"
+}
+
+run_installer() {
+    test -x "$installer" || {
+        printf 'Installed CHROMA does not contain the installer.\n' >&2
+        return 1
+    }
+    exec "$installer" --source "$root" "$@"
+}
+
+case "${1:-help}" in
+    start|stop|restart|status)
+        test -x "$preview" || { printf 'Missing runtime controller: %s\n' "$preview" >&2; exit 1; }
+        exec "$preview" "$1"
+        ;;
+    log)
+        test -x "$preview" || { printf 'Missing runtime controller: %s\n' "$preview" >&2; exit 1; }
+        shift
+        exec "$preview" log "$@"
+        ;;
+    launcher) ipc toggleLauncher ;;
+    clipboard)
+        case "${2:-toggle}" in
+            toggle) ipc toggleClipboard ;;
+            open) ipc openClipboard ;;
+            close) ipc closeClipboard ;;
+            clear) ipc clearClipboard ;;
+            private-on) ipc setClipboardPrivate true ;;
+            private-off) ipc setClipboardPrivate false ;;
+            *) printf 'Usage: chroma clipboard [open|close|clear|private-on|private-off]\n' >&2; exit 2 ;;
+        esac
+        ;;
+    control) ipc toggleControl ;;
+    notifications) ipc toggleNotifications ;;
+    themes) ipc toggleThemes ;;
+    settings) ipc toggleSettings ;;
+    theme-next) ipc cycleTheme 1 ;;
+    wallpaper)
+        shift
+        test $# -gt 0 || set -- select
+        wallpaper_helper="$home/.local/bin/chroma-wallpaper"
+        test -x "$wallpaper_helper" || wallpaper_helper="$root/bin/chroma-wallpaper"
+        test -x "$wallpaper_helper" || {
+            printf 'CHROMA wallpaper helper is unavailable.\n' >&2
+            exit 1
+        }
+        exec "$wallpaper_helper" "$@"
+        ;;
+    doctor)
+        shift
+        exec "$root/tools/chroma-doctor" "$@"
+        ;;
+    update) shift; run_installer --action update "$@" ;;
+    repair) shift; run_installer --action repair "$@" ;;
+    uninstall)
+        shift
+        args=(--action uninstall)
+        test "${1:-}" = '--purge' && args+=(--purge)
+        run_installer "${args[@]}"
+        ;;
+    install-plan) shift; run_installer --action plan "$@" ;;
+    paths)
+        printf 'root=%s\n' "$root"
+        printf 'settings=%s\n' "$config_home/chroma/settings.json"
+        printf 'state=%s\n' "${XDG_STATE_HOME:-$home/.local/state}/chroma-shell"
+        printf 'cache=%s\n' "${XDG_CACHE_HOME:-$home/.cache}/chroma-shell"
+        printf 'data=%s\n' "$data_home/chroma-settings"
+        printf 'installer=%s\n' "$installer"
+        ;;
+    version|--version|-V)
+        cat "$root/VERSION" 2>/dev/null || printf 'development\n'
+        ;;
+    help|--help|-h) usage ;;
+    *) usage >&2; exit 2 ;;
+esac

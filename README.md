@@ -77,3 +77,21 @@ text role, state colour, and the real CAVA spectrum gradient together.
 
 Open the selector with `Super+Shift+T`, or right-click the palette button to
 cycle. The selected theme persists across shell restarts.
+
+<!-- CHROMA-INSTALLER -->
+## Installer preview
+
+CHROMA includes a pure-Bash cross-distribution installer for Hyprland systems on NixOS, Arch, Fedora and Ubuntu.
+
+```bash
+./install.sh --local --dry-run
+./install.sh --local
+```
+
+After this branch is merged, remote installation uses:
+
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/Aetherelic/chroma-shell/main/install.sh)
+```
+
+See [`docs/INSTALL.md`](docs/INSTALL.md) for deployment paths, safety behaviour, NixOS quick mode, repair, update and uninstall commands.

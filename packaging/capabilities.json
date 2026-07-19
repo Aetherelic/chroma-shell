@@ -1,0 +1,28 @@
+{
+  "schema": 1,
+  "minimums": {
+    "quickshell": "0.3.0"
+  },
+  "required": [
+    "bash",
+    "quickshell-or-qs",
+    "hyprctl",
+    "jq"
+  ],
+  "recommended": [
+    "wpctl",
+    "playerctl",
+    "cava",
+    "nmcli",
+    "bluetoothctl",
+    "brightnessctl",
+    "notify-send"
+  ],
+  "features": {
+    "clipboard": ["cliphist", "wl-copy", "wl-paste"],
+    "screenshots": ["grim", "slurp"],
+    "screenshotEditor": ["swappy"],
+    "screenRecording": ["wf-recorder"],
+    "calculator": ["qalc"]
+  }
+}
