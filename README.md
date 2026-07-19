@@ -1,99 +1,132 @@
 <div align="center">
 
-<img width="100%" alt="CHROMA banner" src="./assets/readme/chroma-banner.gif" />
+# ✦ CHROMA ✦
+
+**A vibrant, kinetic Quickshell desktop shell for Hyprland.**
+
+<img src="https://img.shields.io/github/stars/Aetherelic/chroma-shell?style=for-the-badge&logo=github&color=ff5f91&labelColor=11111b" alt="Stars" />
+<img src="https://img.shields.io/github/forks/Aetherelic/chroma-shell?style=for-the-badge&logo=github&color=f6c85f&labelColor=11111b" alt="Forks" />
+<img src="https://img.shields.io/github/last-commit/Aetherelic/chroma-shell?style=for-the-badge&logo=git&color=63d6a3&labelColor=11111b" alt="Last commit" />
+<img src="https://img.shields.io/github/license/Aetherelic/chroma-shell?style=for-the-badge&color=8ea8ff&labelColor=11111b" alt="License" />
 
 <br />
 
-<img src="https://img.shields.io/github/stars/Aetherelic/chroma-shell?style=for-the-badge&color=ff5ea8&labelColor=11111b" />
-<img src="https://img.shields.io/github/forks/Aetherelic/chroma-shell?style=for-the-badge&color=f9c74f&labelColor=11111b" />
-<img src="https://img.shields.io/github/last-commit/Aetherelic/chroma-shell?style=for-the-badge&color=57cc99&labelColor=11111b" />
-<img src="https://img.shields.io/github/license/Aetherelic/chroma-shell?style=for-the-badge&color=64b5f6&labelColor=11111b" />
+<img src="https://img.shields.io/badge/Hyprland-Shell-82d9ff?style=flat-square&labelColor=11111b" alt="Hyprland" />
+<img src="https://img.shields.io/badge/Quickshell-QML-dc8cff?style=flat-square&labelColor=11111b" alt="Quickshell" />
+<img src="https://img.shields.io/badge/NixOS-Ready-7eb8ff?style=flat-square&labelColor=11111b" alt="NixOS" />
+<img src="https://img.shields.io/badge/Arch-Ready-5bc0eb?style=flat-square&labelColor=11111b" alt="Arch" />
+<img src="https://img.shields.io/badge/Fedora-Ready-71a5de?style=flat-square&labelColor=11111b" alt="Fedora" />
+<img src="https://img.shields.io/badge/Ubuntu-Ready-ff9d66?style=flat-square&labelColor=11111b" alt="Ubuntu" />
 
-<br />
+<br /><br />
 
-<img src="https://img.shields.io/badge/Hyprland-Shell-8bd5ff?style=flat-square&labelColor=11111b" />
-<img src="https://img.shields.io/badge/Quickshell-QML_UI-c792ea?style=flat-square&labelColor=11111b" />
-<img src="https://img.shields.io/badge/Linux-NixOS%20%7C%20Arch%20%7C%20Fedora%20%7C%20Ubuntu-ffb86c?style=flat-square&labelColor=11111b" />
-<img src="https://img.shields.io/badge/Status-Alpha-ff5ea8?style=flat-square&labelColor=11111b" />
-
-<h1>CHROMA</h1>
-<p><b>A sharp, colourful, kinetic desktop shell for Hyprland.</b></p>
-<p>
-A vibrant Quickshell-powered interface with a themed bar, live settings app, display manager, launcher,
-clipboard manager, notifications, control centre, diagnostics, and a cross-distro installer.
-</p>
+<img width="100%" src="./assets/readme/chroma-showcase.gif" alt="Animated CHROMA showcase" />
 
 </div>
 
 ---
+
+## ✦ CHROMA at a glance
+
+<table>
+<tr>
+<td width="50%"><b>Style Studio</b><br />Sharp, Technical, Soft, Capsule and Hybrid geometry with coordinated Hyprland window rounding.</td>
+<td width="50%"><b>Live desktop tools</b><br />Launcher, clipboard history, notifications, control centre, wallpaper selector, media and CAVA.</td>
+</tr>
+<tr>
+<td><b>Real settings suite</b><br />Display management, application defaults, autostart, widgets, recovery, diagnostics and shell styling.</td>
+<td><b>Cross-distro installer</b><br />A branded terminal installer for NixOS, Arch, Fedora and Ubuntu.</td>
+</tr>
+</table>
 
 ## ✦ Preview
 
 <div align="center">
 
-<img width="2560" height="1440" alt="image" src="https://github.com/user-attachments/assets/3e9f0672-695b-41ce-b36a-95be5b1c3bc2" />
+<img width="49%" src="https://github.com/user-attachments/assets/4642ee00-34cc-451d-b116-62e637d7fab3" alt="CHROMA Style Studio" />
+<img width="49%" src="https://github.com/user-attachments/assets/de837cbf-41a4-4ec9-a1d1-68ad81715c6f" alt="CHROMA Display Manager" />
 
-
-<br /><br />
-
-<img width="2560" height="1440" alt="image" src="https://github.com/user-attachments/assets/4642ee00-34cc-451d-b116-62e637d7fab3" />
-
-<img width="2562" height="1440" alt="image" src="https://github.com/user-attachments/assets/de837cbf-41a4-4ec9-a1d1-68ad81715c6f" />
-
-<img width="2559" height="1440" alt="image" src="https://github.com/user-attachments/assets/da45cbc5-b273-4040-85eb-47668214c397" />
-
-<img width="2560" height="1440" alt="image" src="https://github.com/user-attachments/assets/79bfd9d2-661b-4a2f-b064-dacd11c4edcf" />
+<img width="49%" src="https://github.com/user-attachments/assets/da45cbc5-b273-4040-85eb-47668214c397" alt="CHROMA Credits" />
+<img width="49%" src="https://github.com/user-attachments/assets/79bfd9d2-661b-4a2f-b064-dacd11c4edcf" alt="CHROMA Wallpaper Selector" />
 
 <br /><br />
 
-<img width="49%" src="./assets/readme/chroma-themes.gif" alt="Theme switching preview" />
-<img width="49%" src="./assets/readme/chroma-launcher.gif" alt="Launcher preview" />
+<img width="100%" src="./assets/readme/chroma-settings-tour.gif" alt="Animated CHROMA settings tour" />
 
 </div>
 
----
-
 ## ✦ Features
 
-- **Kinetic top bar** with style presets, live theming, media, workspaces, utility modules, and system info
-- **Style Studio** with sharp, soft, hybrid, technical, and capsule geometry modes
-- **Settings app** with pages for:
-  - Wi-Fi
-  - Bluetooth
-  - Display
-  - Widgets
-  - Applications
-  - Config / Recovery
-  - Shell Settings
-  - About System
-  - Credits
-- **Safe display manager** with preview + keep/revert flow
-- **Applications manager** with launcher favourites and autostart controls
-- **Clipboard manager** with searchable history and private mode
-- **Control centre**, **notifications**, **OSDs**, and **theme browser**
-- **Config snapshots**, diagnostics, restore tools, and Git-aware recovery
-- **Cross-distro installer** for NixOS, Arch, Fedora, and Ubuntu
-- **CLI tooling** for launching, managing, validating, and diagnosing CHROMA
-
----
-
-## ✦ Why CHROMA?
-
-CHROMA is built to feel **bold, expressive, and interactive** — not flat, generic, or glassy.
-
-It focuses on:
-
-- **strong visual identity**
-- **high customisability**
-- **theme cohesion**
-- **practical desktop tooling**
-- **stable day-to-day usability**
-
----
+- Theme-aware top bar with workspaces, media controls, album art, CAVA, utilities and clock
+- Global geometry and colour systems shared by every CHROMA surface
+- Safe display previews with Keep / Revert protection
+- Application defaults, launcher favourites, hidden apps and user autostart management
+- Searchable clipboard history with image previews and private mode
+- Notifications, OSDs, control centre, theme browser and wallpaper selection
+- Snapshot recovery, diagnostics, repair tools and Git-aware project status
+- CLI controls plus an aesthetic cross-distro installer
 
 ## ✦ Install
 
-### Quick install
-
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/Aetherelic/chroma-shell/main/install.sh)
+```
+
+Preview the installer without changing anything:
+
+```bash
+git clone https://github.com/Aetherelic/chroma-shell.git
+cd chroma-shell
+./install.sh --local --dry-run
+```
+
+> CHROMA expects an existing Hyprland session. The installer deploys the shell and its integrations without replacing the rest of your desktop configuration.
+
+## ✦ CLI
+
+```bash
+chroma start          # launch CHROMA
+chroma restart        # restart the shell
+chroma settings       # open settings
+chroma launcher       # open the launcher
+chroma clipboard      # open clipboard history
+chroma doctor         # run diagnostics
+chroma update         # update the installation
+chroma uninstall      # remove managed files
+```
+
+## ✦ Status
+
+| Area | State |
+|---|:---:|
+| Shell, bar and style engine | ✅ |
+| Settings and display manager | ✅ |
+| Applications and clipboard | ✅ |
+| Recovery and diagnostics | ✅ |
+| Cross-distro installer | ✅ |
+| Declarative NixOS / Home Manager modules | 🚧 |
+
+## ✦ Credits
+
+<div align="center">
+
+### CHROMA
+
+Designed and developed by **Aetherelic**  
+GitHub: [@Aetherelic](https://github.com/Aetherelic)
+
+Built with Quickshell, Hyprland, Qt/QML, CAVA and the wider Linux desktop ecosystem.
+
+</div>
+
+## ✦ License
+
+CHROMA is available under the [MIT License](./LICENSE).
+
+---
+
+<div align="center">
+
+**Vibrant by design. Practical by default.**
+
+</div>
