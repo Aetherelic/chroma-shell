@@ -10,6 +10,7 @@ required_files=(
     install.sh
     preview.sh
     SettingsStore.qml
+    DistroInfo.qml
     desktop/WidgetStore.qml
     desktop/DesktopWidgets.qml
     desktop/WidgetFrame.qml
@@ -147,6 +148,8 @@ else
 fi
 
 grep -Fq 'target: "chroma"' shell.qml
+grep -Fq 'path: "/etc/os-release"' DistroInfo.qml
+grep -Fq 'distroInfo.glyph' ChromaBar.qml
 grep -Fq "hypr::emit_binding 'SUPER SHIFT' 'V'" installer/lib/hyprland.sh
 
 ./bin/chroma --version >/dev/null
