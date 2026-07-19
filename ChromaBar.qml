@@ -35,7 +35,7 @@ Scope {
             }
 
             implicitHeight: shell.barHeight
-            exclusiveZone: 0
+            exclusiveZone: shell.barHeight + shell.barOuterMargin
             aboveWindows: true
             color: "transparent"
 
