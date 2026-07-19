@@ -2,7 +2,7 @@
 
 # ✦ CHROMA ✦
 
-**A vibrant, kinetic Quickshell desktop shell for Hyprland.**
+**A vibrant, Quickshell desktop shell for Hyprland.**
 
 <img src="https://img.shields.io/github/last-commit/Aetherelic/chroma-shell?style=for-the-badge&logo=git&color=63d6a3&labelColor=11111b" alt="Last commit" />
 <img src="https://img.shields.io/github/license/Aetherelic/chroma-shell?style=for-the-badge&color=8ea8ff&labelColor=11111b" alt="License" />
@@ -104,6 +104,8 @@ chroma uninstall      # remove managed files
 | Cross-distro installer | ✅ |
 | Declarative NixOS / Home Manager modules | 🚧 |
 
+## ✦ Edition
+Chroma has 2 versions, Kinetic and Kaizen. Kinetic is the main version avaliable for all distrobutions however, Chroma Kaizen is specifically for Kaizen Linux, a Linux Distrobution I am currently working on which will impliment more features than the Kinetic version you can view Kaizen Linux [here](https://github.com/Aetherelic/Kaizen-Linux)
 ## ✦ Credits
 
 <div align="center">
