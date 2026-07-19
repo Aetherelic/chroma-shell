@@ -41,7 +41,7 @@ Rectangle {
                 ? shell.ink
                 : shell.text
             font.family: "JetBrainsMono Nerd Font"
-            font.pixelSize: Math.round(9 * shell.fontScale)
+            font.pixelSize: Math.round(10 * shell.fontScale)
             font.weight: Font.Black
             font.letterSpacing: 0.8
         }
@@ -55,7 +55,7 @@ Rectangle {
                 : shell.muted
             opacity: 0.72
             font.family: "JetBrainsMono Nerd Font"
-            font.pixelSize: Math.round(7 * shell.fontScale)
+            font.pixelSize: Math.round(8 * shell.fontScale)
             font.weight: Font.Bold
             font.letterSpacing: 0.6
         }

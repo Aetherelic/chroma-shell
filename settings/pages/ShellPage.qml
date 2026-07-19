@@ -32,7 +32,7 @@ Flickable {
 
             GridLayout {
                 Layout.fillWidth: true
-                columns: 4
+                columns: 5
                 rowSpacing: 8
                 columnSpacing: 8
 
@@ -46,7 +46,7 @@ Flickable {
                         property bool selected: shell.themeIndex === index
 
                         Layout.fillWidth: true
-                        Layout.preferredHeight: 70
+                        Layout.preferredHeight: 64
                         color: selected
                             ? theme.colours[0]
                             : themeMouse.containsMouse
@@ -67,7 +67,7 @@ Flickable {
                                     ? themeCard.theme.ink
                                     : themeCard.theme.text
                                 font.family: "JetBrainsMono Nerd Font"
-                                font.pixelSize: Math.round(9 * shell.fontScale)
+                                font.pixelSize: Math.round(10 * shell.fontScale)
                                 font.weight: Font.Black
                                 elide: Text.ElideRight
                             }

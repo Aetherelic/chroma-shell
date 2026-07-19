@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="CHROMA logo">
+  <defs>
+    <linearGradient id="spectrum" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ff4f79"/>
+      <stop offset=".18" stop-color="#ff9f43"/>
+      <stop offset=".36" stop-color="#ffe66d"/>
+      <stop offset=".54" stop-color="#45f0a8"/>
+      <stop offset=".7" stop-color="#42c8ff"/>
+      <stop offset=".86" stop-color="#8f7cff"/>
+      <stop offset="1" stop-color="#db5cff"/>
+    </linearGradient>
+  </defs>
+  <path fill="url(#spectrum)" d="M52 40h152v36H88v104h116v36H52z"/>
+  <path fill="currentColor" opacity=".18" d="M88 76h86v32H120v40h54v32H88z"/>
+</svg>

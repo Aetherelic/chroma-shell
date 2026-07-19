@@ -1,5 +1,8 @@
 <div align="center">
 
+<img width="620" alt="CHROMA" src="./assets/branding/chroma-wordmark.svg" />
+
+
 # ✦ CHROMA ✦
 
 **A vibrant, Quickshell desktop shell for Hyprland.**

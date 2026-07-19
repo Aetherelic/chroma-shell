@@ -27,59 +27,52 @@ Scope {
             ? sink.audio.muted
             : false
 
-    property bool networkOnline: {
-        var devices = Networking.devices.values
-
-        for (var index = 0; index < devices.length; index++) {
-            if (devices[index] && devices[index].connected) {
-                return true
-            }
-        }
-
-        return false
-    }
-
     property string networkLabel: {
         var devices = Networking.devices.values
 
         for (var deviceIndex = 0; deviceIndex < devices.length; deviceIndex++) {
             var device = devices[deviceIndex]
-
             if (!device) {
                 continue
             }
 
-            var networks = device.networks.values
-
-            for (var networkIndex = 0; networkIndex < networks.length; networkIndex++) {
-                var network = networks[networkIndex]
-
-                if (network && network.connected) {
-                    return (network.name || "CONNECTED").toUpperCase()
+            if (device.networks !== undefined) {
+                var networks = device.networks.values
+                for (var networkIndex = 0; networkIndex < networks.length; networkIndex++) {
+                    var network = networks[networkIndex]
+                    if (network && network.connected) {
+                        return network.name || "Connected"
+                    }
                 }
             }
 
             if (device.connected) {
-                return (device.name || "WIRED LINK").toUpperCase()
+                return device.name || "Wired"
             }
         }
 
-        return Networking.wifiEnabled
-            ? "NO ACTIVE LINK"
-            : "RADIO OFF"
+        return Networking.wifiEnabled ? "Not connected" : "Disabled"
     }
 
-    property int connectedBluetoothCount:
-        Bluetooth.devices.values.length
+    property int connectedBluetoothCount: {
+        var devices = Bluetooth.devices.values
+        var count = 0
+        for (var index = 0; index < devices.length; index++) {
+            if (devices[index] && devices[index].connected) {
+                count++
+            }
+        }
+        return count
+    }
 
     property string bluetoothLabel:
         bluetoothAdapter === null
-            ? "NO ADAPTER"
+            ? "No adapter"
             : !bluetoothAdapter.enabled
-                ? "RADIO OFF"
+                ? "Disabled"
                 : connectedBluetoothCount > 0
-                    ? connectedBluetoothCount + " CONNECTED"
-                    : "READY"
+                    ? connectedBluetoothCount + " connected"
+                    : "Ready"
 
     function setVolume(value) {
         if (sink === null || sink.audio === null) {
@@ -181,8 +174,8 @@ Scope {
             Rectangle {
                 id: panel
 
-                width: 468
-                height: 510
+                width: 430
+                height: 474
 
                 anchors {
                     right: parent.right
@@ -197,11 +190,11 @@ Scope {
                     rightMargin: 18
                     topMargin:
                         shell.barPosition === "TOP"
-                            ? shell.barHeight + 28
+                            ? shell.barHeight + 24
                             : 0
                     bottomMargin:
                         shell.barPosition === "BOTTOM"
-                            ? shell.barHeight + 28
+                            ? shell.barHeight + 24
                             : 0
                 }
 
@@ -211,9 +204,7 @@ Scope {
                 border.color: shell.border
                 clip: true
 
-                MouseArea {
-                    anchors.fill: parent
-                }
+                MouseArea { anchors.fill: parent }
 
                 Row {
                     anchors {
@@ -221,17 +212,16 @@ Scope {
                         left: parent.left
                         right: parent.right
                     }
-
                     height: 5
 
                     Repeater {
-                        model: 7
+                        model: shell.spectrumPalette.length
 
                         Rectangle {
                             required property int index
-                            width: panel.width / 7
+                            width: panel.width / shell.spectrumPalette.length
                             height: 5
-                            color: shell.uiPalette[index]
+                            color: shell.spectrumPalette[index]
                         }
                     }
                 }
@@ -240,43 +230,29 @@ Scope {
                     anchors {
                         fill: parent
                         topMargin: 20
-                        bottomMargin: 18
-                        leftMargin: 18
-                        rightMargin: 18
+                        bottomMargin: 16
+                        leftMargin: 16
+                        rightMargin: 16
                     }
-
                     spacing: 12
 
                     RowLayout {
                         Layout.fillWidth: true
-                        Layout.preferredHeight: 48
+                        Layout.preferredHeight: 42
 
-                        ColumnLayout {
+                        Text {
                             Layout.fillWidth: true
-                            spacing: 2
-
-                            Text {
-                                text: "CHROMA//CONTROL"
-                                color: shell.textStrong
-                                font.family: "JetBrainsMono Nerd Font"
-                                font.pixelSize: Math.round(17 * shell.fontScale)
-                                font.weight: Font.Black
-                                font.letterSpacing: 1
-                            }
-
-                            Text {
-                                text: "SYSTEM INTERFACE // " + shell.themeName
-                                color: shell.uiPalette[0]
-                                font.family: "JetBrainsMono Nerd Font"
-                                font.pixelSize: Math.round(8 * shell.fontScale)
-                                font.weight: Font.Black
-                                font.letterSpacing: 1.6
-                            }
+                            text: "CHROMA // CONTROL"
+                            color: shell.textStrong
+                            font.family: "JetBrainsMono Nerd Font"
+                            font.pixelSize: Math.round(17 * shell.fontScale)
+                            font.weight: Font.Black
+                            font.letterSpacing: 0.7
                         }
 
                         Rectangle {
-                            width: 38
-                            height: 38
+                            width: 40
+                            height: 40
                             radius: shell.controlRadius
                             color: closeMouse.containsMouse
                                 ? shell.uiPalette[0]
@@ -290,7 +266,7 @@ Scope {
                                 color: closeMouse.containsMouse
                                     ? shell.ink
                                     : shell.text
-                                font.pixelSize: Math.round(22 * shell.fontScale)
+                                font.pixelSize: Math.round(21 * shell.fontScale)
                                 font.weight: Font.Black
                             }
 
@@ -306,36 +282,36 @@ Scope {
 
                     Rectangle {
                         Layout.fillWidth: true
-                        Layout.preferredHeight: 132
-                        color: shell.backgroundAlt
-                        radius: shell.panelRadius
+                        Layout.preferredHeight: 104
+                        color: shell.surface
+                        radius: shell.cardRadius
                         border.width: shell.borderWidth
-                        border.color: shell.surfaceHover
+                        border.color: shell.border
 
                         ColumnLayout {
                             anchors {
                                 fill: parent
-                                margins: 14
+                                margins: 13
                             }
-
-                            spacing: 11
+                            spacing: 10
 
                             RowLayout {
                                 Layout.fillWidth: true
+                                spacing: 11
 
                                 Rectangle {
                                     Layout.preferredWidth: 42
                                     Layout.preferredHeight: 42
                                     radius: shell.controlRadius
                                     color: component.muted
-                                        ? shell.uiPalette[0]
-                                        : shell.uiPalette[5]
+                                        ? shell.error
+                                        : shell.uiPalette[4]
 
                                     Text {
                                         anchors.centerIn: parent
                                         text: component.muted ? "×" : "♪"
                                         color: shell.ink
-                                        font.pixelSize: Math.round(20 * shell.fontScale)
+                                        font.pixelSize: Math.round(19 * shell.fontScale)
                                         font.weight: Font.Black
                                     }
 
@@ -348,7 +324,7 @@ Scope {
 
                                 ColumnLayout {
                                     Layout.fillWidth: true
-                                    spacing: 1
+                                    spacing: 2
 
                                     Text {
                                         Layout.fillWidth: true
@@ -356,10 +332,10 @@ Scope {
                                             ? (
                                                 component.sink.description
                                                 || component.sink.nickname
-                                                || "DEFAULT OUTPUT"
-                                            ).toUpperCase()
-                                            : "NO AUDIO OUTPUT"
-                                        color: shell.text
+                                                || "Default output"
+                                            )
+                                            : "No audio output"
+                                        color: shell.textStrong
                                         font.family: "JetBrainsMono Nerd Font"
                                         font.pixelSize: Math.round(11 * shell.fontScale)
                                         font.weight: Font.Black
@@ -367,24 +343,19 @@ Scope {
                                     }
 
                                     Text {
-                                        text: component.muted
-                                            ? "OUTPUT MUTED"
-                                            : "PIPEWIRE OUTPUT"
-                                        color: component.muted
-                                            ? shell.uiPalette[0]
-                                            : shell.muted
+                                        text: component.muted ? "Muted" : "Audio output"
+                                        color: component.muted ? shell.error : shell.muted
                                         font.family: "JetBrainsMono Nerd Font"
                                         font.pixelSize: Math.round(8 * shell.fontScale)
                                         font.weight: Font.Bold
-                                        font.letterSpacing: 1.3
                                     }
                                 }
 
                                 Text {
                                     text: Math.round(component.volume * 100) + "%"
-                                    color: shell.uiPalette[5]
+                                    color: shell.uiPalette[4]
                                     font.family: "JetBrainsMono Nerd Font"
-                                    font.pixelSize: Math.round(18 * shell.fontScale)
+                                    font.pixelSize: Math.round(16 * shell.fontScale)
                                     font.weight: Font.Black
                                 }
                             }
@@ -392,18 +363,18 @@ Scope {
                             Rectangle {
                                 id: volumeTrack
                                 Layout.fillWidth: true
-                                Layout.preferredHeight: 16
-                                radius: shell.controlRadius
+                                Layout.preferredHeight: 12
+                                radius: Math.min(shell.controlRadius, 6)
                                 color: shell.surfaceHover
                                 clip: true
 
                                 Rectangle {
                                     width: parent.width * component.volume
                                     height: parent.height
-                                    radius: shell.controlRadius
+                                    radius: parent.radius
                                     color: component.muted
-                                        ? shell.uiPalette[0]
-                                        : shell.uiPalette[5]
+                                        ? shell.error
+                                        : shell.uiPalette[4]
 
                                     Behavior on width {
                                         NumberAnimation {
@@ -413,30 +384,11 @@ Scope {
                                     }
                                 }
 
-                                Row {
-                                    anchors.fill: parent
-                                    spacing: 14
-
-                                    Repeater {
-                                        model: 24
-
-                                        Rectangle {
-                                            required property int index
-                                            width: 2
-                                            height: parent.height
-                                            color: shell.background
-                                            opacity: 0.42
-                                        }
-                                    }
-                                }
-
                                 MouseArea {
                                     anchors.fill: parent
                                     cursorShape: Qt.PointingHandCursor
-
                                     onPressed: mouse =>
                                         component.setVolume(mouse.x / width)
-
                                     onPositionChanged: mouse => {
                                         if (pressed) {
                                             component.setVolume(mouse.x / width)
@@ -447,144 +399,142 @@ Scope {
                         }
                     }
 
-                    RowLayout {
+                    GridLayout {
                         Layout.fillWidth: true
-                        Layout.preferredHeight: 112
-                        spacing: 8
+                        Layout.preferredHeight: 176
+                        columns: 2
+                        rowSpacing: 8
+                        columnSpacing: 8
 
                         Rectangle {
-                            id: networkTile
                             Layout.fillWidth: true
                             Layout.fillHeight: true
-                            radius: shell.panelRadius
+                            radius: shell.cardRadius
                             color: Networking.wifiEnabled
-                                ? shell.uiPalette[4]
-                                : shell.surface
+                                ? shell.uiPalette[3]
+                                : (wifiMouse.containsMouse ? shell.surfaceHover : shell.surface)
                             border.width: Networking.wifiEnabled ? 0 : shell.borderWidth
                             border.color: shell.border
 
-                            ColumnLayout {
+                            RowLayout {
                                 anchors {
                                     fill: parent
-                                    margins: 12
+                                    margins: 13
                                 }
+                                spacing: 10
 
                                 Text {
-                                    text: "NET"
-                                    color: Networking.wifiEnabled
-                                        ? shell.ink
-                                        : shell.uiPalette[4]
+                                    text: "󰖩"
+                                    color: Networking.wifiEnabled ? shell.ink : shell.text
                                     font.family: "JetBrainsMono Nerd Font"
-                                    font.pixelSize: Math.round(19 * shell.fontScale)
-                                    font.weight: Font.Black
+                                    font.pixelSize: Math.round(20 * shell.fontScale)
                                 }
 
-                                Item { Layout.fillHeight: true }
-
-                                Text {
+                                ColumnLayout {
                                     Layout.fillWidth: true
-                                    text: component.networkLabel
-                                    color: Networking.wifiEnabled
-                                        ? shell.ink
-                                        : shell.text
-                                    font.family: "JetBrainsMono Nerd Font"
-                                    font.pixelSize: Math.round(8 * shell.fontScale)
-                                    font.weight: Font.Black
-                                    elide: Text.ElideRight
-                                }
+                                    spacing: 2
 
-                                Text {
-                                    text: Networking.wifiEnabled ? "RADIO ON" : "RADIO OFF"
-                                    color: Networking.wifiEnabled
-                                        ? shell.surfaceHover
-                                        : shell.dim
-                                    font.family: "JetBrainsMono Nerd Font"
-                                    font.pixelSize: Math.round(7 * shell.fontScale)
-                                    font.weight: Font.Bold
-                                    font.letterSpacing: 1
+                                    Text {
+                                        text: "WI-FI"
+                                        color: Networking.wifiEnabled ? shell.ink : shell.textStrong
+                                        font.family: "JetBrainsMono Nerd Font"
+                                        font.pixelSize: Math.round(11 * shell.fontScale)
+                                        font.weight: Font.Black
+                                    }
+
+                                    Text {
+                                        Layout.fillWidth: true
+                                        text: component.networkLabel
+                                        color: Networking.wifiEnabled ? shell.ink : shell.muted
+                                        opacity: 0.78
+                                        font.family: "JetBrainsMono Nerd Font"
+                                        font.pixelSize: Math.round(8 * shell.fontScale)
+                                        font.weight: Font.Bold
+                                        elide: Text.ElideRight
+                                    }
                                 }
                             }
 
                             MouseArea {
+                                id: wifiMouse
                                 anchors.fill: parent
                                 hoverEnabled: true
                                 cursorShape: Qt.PointingHandCursor
-                                onClicked:
-                                    Networking.wifiEnabled = !Networking.wifiEnabled
+                                onClicked: Networking.wifiEnabled = !Networking.wifiEnabled
                             }
                         }
 
                         Rectangle {
-                            id: bluetoothTile
                             Layout.fillWidth: true
                             Layout.fillHeight: true
-                            radius: shell.panelRadius
+                            radius: shell.cardRadius
                             color:
                                 component.bluetoothAdapter !== null
                                 && component.bluetoothAdapter.enabled
-                                    ? shell.uiPalette[6]
-                                    : shell.surface
+                                    ? shell.uiPalette[5]
+                                    : (bluetoothMouse.containsMouse ? shell.surfaceHover : shell.surface)
                             border.width:
                                 component.bluetoothAdapter !== null
                                 && component.bluetoothAdapter.enabled
                                     ? 0
-                                    : 1
+                                    : shell.borderWidth
                             border.color: shell.border
 
-                            ColumnLayout {
+                            RowLayout {
                                 anchors {
                                     fill: parent
-                                    margins: 12
+                                    margins: 13
                                 }
+                                spacing: 10
 
                                 Text {
-                                    text: "BT"
-                                    color:
-                                        component.bluetoothAdapter !== null
-                                        && component.bluetoothAdapter.enabled
-                                            ? shell.ink
-                                            : shell.uiPalette[6]
-                                    font.family: "JetBrainsMono Nerd Font"
-                                    font.pixelSize: Math.round(19 * shell.fontScale)
-                                    font.weight: Font.Black
-                                }
-
-                                Item { Layout.fillHeight: true }
-
-                                Text {
-                                    Layout.fillWidth: true
-                                    text: component.bluetoothLabel
+                                    text: "󰂯"
                                     color:
                                         component.bluetoothAdapter !== null
                                         && component.bluetoothAdapter.enabled
                                             ? shell.ink
                                             : shell.text
                                     font.family: "JetBrainsMono Nerd Font"
-                                    font.pixelSize: Math.round(8 * shell.fontScale)
-                                    font.weight: Font.Black
-                                    elide: Text.ElideRight
+                                    font.pixelSize: Math.round(20 * shell.fontScale)
                                 }
 
-                                Text {
-                                    text: "BLUEZ RADIO"
-                                    color:
-                                        component.bluetoothAdapter !== null
-                                        && component.bluetoothAdapter.enabled
-                                            ? shell.surfaceHover
-                                            : shell.dim
-                                    font.family: "JetBrainsMono Nerd Font"
-                                    font.pixelSize: Math.round(7 * shell.fontScale)
-                                    font.weight: Font.Bold
-                                    font.letterSpacing: 1
+                                ColumnLayout {
+                                    Layout.fillWidth: true
+                                    spacing: 2
+
+                                    Text {
+                                        text: "BLUETOOTH"
+                                        color:
+                                            component.bluetoothAdapter !== null
+                                            && component.bluetoothAdapter.enabled
+                                                ? shell.ink
+                                                : shell.textStrong
+                                        font.family: "JetBrainsMono Nerd Font"
+                                        font.pixelSize: Math.round(11 * shell.fontScale)
+                                        font.weight: Font.Black
+                                    }
+
+                                    Text {
+                                        text: component.bluetoothLabel
+                                        color:
+                                            component.bluetoothAdapter !== null
+                                            && component.bluetoothAdapter.enabled
+                                                ? shell.ink
+                                                : shell.muted
+                                        opacity: 0.78
+                                        font.family: "JetBrainsMono Nerd Font"
+                                        font.pixelSize: Math.round(8 * shell.fontScale)
+                                        font.weight: Font.Bold
+                                    }
                                 }
                             }
 
                             MouseArea {
+                                id: bluetoothMouse
                                 anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
                                 enabled: component.bluetoothAdapter !== null
-
+                                hoverEnabled: true
+                                cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
                                 onClicked:
                                     component.bluetoothAdapter.enabled =
                                         !component.bluetoothAdapter.enabled
@@ -594,285 +544,243 @@ Scope {
                         Rectangle {
                             Layout.fillWidth: true
                             Layout.fillHeight: true
-                            radius: shell.panelRadius
+                            radius: shell.cardRadius
                             color: component.idleInhibit
                                 ? shell.uiPalette[2]
-                                : shell.surface
+                                : (awakeMouse.containsMouse ? shell.surfaceHover : shell.surface)
                             border.width: component.idleInhibit ? 0 : shell.borderWidth
                             border.color: shell.border
 
-                            ColumnLayout {
+                            RowLayout {
                                 anchors {
                                     fill: parent
-                                    margins: 12
+                                    margins: 13
                                 }
+                                spacing: 10
 
                                 Text {
-                                    text: "AWAKE"
-                                    color: component.idleInhibit
-                                        ? shell.ink
-                                        : shell.uiPalette[2]
+                                    text: "󰛨"
+                                    color: component.idleInhibit ? shell.ink : shell.text
                                     font.family: "JetBrainsMono Nerd Font"
-                                    font.pixelSize: Math.round(15 * shell.fontScale)
-                                    font.weight: Font.Black
+                                    font.pixelSize: Math.round(20 * shell.fontScale)
                                 }
 
-                                Item { Layout.fillHeight: true }
+                                ColumnLayout {
+                                    Layout.fillWidth: true
+                                    spacing: 2
 
-                                Text {
-                                    text: component.idleInhibit
-                                        ? "INHIBITED"
-                                        : "NORMAL"
-                                    color: component.idleInhibit
-                                        ? shell.ink
-                                        : shell.text
-                                    font.family: "JetBrainsMono Nerd Font"
-                                    font.pixelSize: Math.round(8 * shell.fontScale)
-                                    font.weight: Font.Black
-                                }
+                                    Text {
+                                        text: "AWAKE"
+                                        color: component.idleInhibit ? shell.ink : shell.textStrong
+                                        font.family: "JetBrainsMono Nerd Font"
+                                        font.pixelSize: Math.round(11 * shell.fontScale)
+                                        font.weight: Font.Black
+                                    }
 
-                                Text {
-                                    text: "IDLE STATE"
-                                    color: component.idleInhibit
-                                        ? shell.surfaceHover
-                                        : shell.dim
-                                    font.family: "JetBrainsMono Nerd Font"
-                                    font.pixelSize: Math.round(7 * shell.fontScale)
-                                    font.weight: Font.Bold
-                                    font.letterSpacing: 1
+                                    Text {
+                                        text: component.idleInhibit ? "Enabled" : "Disabled"
+                                        color: component.idleInhibit ? shell.ink : shell.muted
+                                        opacity: 0.78
+                                        font.family: "JetBrainsMono Nerd Font"
+                                        font.pixelSize: Math.round(8 * shell.fontScale)
+                                        font.weight: Font.Bold
+                                    }
                                 }
                             }
 
                             MouseArea {
+                                id: awakeMouse
                                 anchors.fill: parent
                                 hoverEnabled: true
                                 cursorShape: Qt.PointingHandCursor
-                                onClicked:
-                                    component.idleInhibit = !component.idleInhibit
+                                onClicked: component.idleInhibit = !component.idleInhibit
+                            }
+                        }
+
+                        Rectangle {
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            radius: shell.cardRadius
+                            color: shell.doNotDisturb
+                                ? shell.uiPalette[0]
+                                : (dndMouse.containsMouse ? shell.surfaceHover : shell.surface)
+                            border.width: shell.doNotDisturb ? 0 : shell.borderWidth
+                            border.color: shell.border
+
+                            RowLayout {
+                                anchors {
+                                    fill: parent
+                                    margins: 13
+                                }
+                                spacing: 10
+
+                                Text {
+                                    text: "󰂛"
+                                    color: shell.doNotDisturb ? shell.ink : shell.text
+                                    font.family: "JetBrainsMono Nerd Font"
+                                    font.pixelSize: Math.round(20 * shell.fontScale)
+                                }
+
+                                ColumnLayout {
+                                    Layout.fillWidth: true
+                                    spacing: 2
+
+                                    Text {
+                                        text: "DO NOT DISTURB"
+                                        color: shell.doNotDisturb ? shell.ink : shell.textStrong
+                                        font.family: "JetBrainsMono Nerd Font"
+                                        font.pixelSize: Math.round(10 * shell.fontScale)
+                                        font.weight: Font.Black
+                                    }
+
+                                    Text {
+                                        text: shell.doNotDisturb ? "Enabled" : "Disabled"
+                                        color: shell.doNotDisturb ? shell.ink : shell.muted
+                                        opacity: 0.78
+                                        font.family: "JetBrainsMono Nerd Font"
+                                        font.pixelSize: Math.round(8 * shell.fontScale)
+                                        font.weight: Font.Bold
+                                    }
+                                }
+                            }
+
+                            MouseArea {
+                                id: dndMouse
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: shell.doNotDisturb = !shell.doNotDisturb
                             }
                         }
                     }
 
                     Rectangle {
                         Layout.fillWidth: true
-                        Layout.preferredHeight: 128
-                        color: shell.backgroundAlt
-                        radius: shell.panelRadius
+                        Layout.preferredHeight: 76
+                        color: shell.surface
+                        radius: shell.cardRadius
                         border.width: shell.borderWidth
-                        border.color: shell.surfaceHover
+                        border.color: shell.border
 
-                        ColumnLayout {
+                        RowLayout {
                             anchors {
                                 fill: parent
-                                margins: 12
+                                margins: 8
                             }
+                            spacing: 7
 
-                            spacing: 9
-
-                            RowLayout {
-                                Layout.fillWidth: true
-
-                                Text {
-                                    text: "SESSION CONTROL"
-                                    color: shell.text
-                                    font.family: "JetBrainsMono Nerd Font"
-                                    font.pixelSize: Math.round(10 * shell.fontScale)
-                                    font.weight: Font.Black
-                                    font.letterSpacing: 1.5
-                                }
-
-                                Item { Layout.fillWidth: true }
-
-                                Text {
-                                    text: component.pendingAction === ""
-                                        ? "SAFE MODE"
-                                        : "CONFIRM ACTION"
-                                    color: component.pendingAction === ""
-                                        ? shell.dim
-                                        : shell.uiPalette[0]
-                                    font.family: "JetBrainsMono Nerd Font"
-                                    font.pixelSize: Math.round(8 * shell.fontScale)
-                                    font.weight: Font.Black
-                                    font.letterSpacing: 1
-                                }
-                            }
-
-                            RowLayout {
+                            Rectangle {
                                 Layout.fillWidth: true
                                 Layout.fillHeight: true
-                                spacing: 7
+                                radius: shell.controlRadius
+                                color: lockMouse.containsMouse
+                                    ? shell.uiPalette[4]
+                                    : shell.backgroundAlt
 
-                                Rectangle {
-                                    Layout.fillWidth: true
-                                    Layout.fillHeight: true
-                                    radius: shell.controlRadius
-                                    color: lockMouse.containsMouse
-                                        ? shell.uiPalette[4]
-                                        : shell.surface
-                                    border.width: lockMouse.containsMouse ? 0 : shell.borderWidth
-                                    border.color: shell.border
-
-                                    Text {
-                                        anchors.centerIn: parent
-                                        text: "LOCK"
-                                        color: lockMouse.containsMouse
-                                            ? shell.ink
-                                            : shell.text
-                                        font.family: "JetBrainsMono Nerd Font"
-                                        font.pixelSize: Math.round(9 * shell.fontScale)
-                                        font.weight: Font.Black
-                                    }
-
-                                    MouseArea {
-                                        id: lockMouse
-                                        anchors.fill: parent
-                                        hoverEnabled: true
-                                        cursorShape: Qt.PointingHandCursor
-                                        onClicked: {
-                                            component.closePanel()
-                                            Hyprland.dispatch("exec hyprlock")
-                                        }
-                                    }
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: "󰌾  LOCK"
+                                    color: lockMouse.containsMouse ? shell.ink : shell.text
+                                    font.family: "JetBrainsMono Nerd Font"
+                                    font.pixelSize: Math.round(9 * shell.fontScale)
+                                    font.weight: Font.Black
                                 }
 
-                                Rectangle {
-                                    Layout.fillWidth: true
-                                    Layout.fillHeight: true
-                                    radius: shell.controlRadius
-                                    color: component.pendingAction === "logout"
-                                        ? shell.uiPalette[1]
-                                        : logoutMouse.containsMouse
-                                            ? shell.surfaceHover
-                                            : shell.surface
-                                    border.width: component.pendingAction === "logout" ? 0 : shell.borderWidth
-                                    border.color: shell.border
-
-                                    Text {
-                                        anchors.centerIn: parent
-                                        text: component.pendingAction === "logout"
-                                            ? "CONFIRM"
-                                            : "LOGOUT"
-                                        color: component.pendingAction === "logout"
-                                            ? shell.ink
-                                            : shell.text
-                                        font.family: "JetBrainsMono Nerd Font"
-                                        font.pixelSize: Math.round(9 * shell.fontScale)
-                                        font.weight: Font.Black
-                                    }
-
-                                    MouseArea {
-                                        id: logoutMouse
-                                        anchors.fill: parent
-                                        hoverEnabled: true
-                                        cursorShape: Qt.PointingHandCursor
-                                        onClicked: component.requestAction("logout")
-                                    }
-                                }
-
-                                Rectangle {
-                                    Layout.fillWidth: true
-                                    Layout.fillHeight: true
-                                    radius: shell.controlRadius
-                                    color: component.pendingAction === "reboot"
-                                        ? shell.uiPalette[2]
-                                        : rebootMouse.containsMouse
-                                            ? shell.surfaceHover
-                                            : shell.surface
-                                    border.width: component.pendingAction === "reboot" ? 0 : shell.borderWidth
-                                    border.color: shell.border
-
-                                    Text {
-                                        anchors.centerIn: parent
-                                        text: component.pendingAction === "reboot"
-                                            ? "CONFIRM"
-                                            : "REBOOT"
-                                        color: component.pendingAction === "reboot"
-                                            ? shell.ink
-                                            : shell.text
-                                        font.family: "JetBrainsMono Nerd Font"
-                                        font.pixelSize: Math.round(9 * shell.fontScale)
-                                        font.weight: Font.Black
-                                    }
-
-                                    MouseArea {
-                                        id: rebootMouse
-                                        anchors.fill: parent
-                                        hoverEnabled: true
-                                        cursorShape: Qt.PointingHandCursor
-                                        onClicked: component.requestAction("reboot")
-                                    }
-                                }
-
-                                Rectangle {
-                                    Layout.fillWidth: true
-                                    Layout.fillHeight: true
-                                    radius: shell.controlRadius
-                                    color: component.pendingAction === "shutdown"
-                                        ? shell.uiPalette[0]
-                                        : shutdownMouse.containsMouse
-                                            ? shell.surfaceHover
-                                            : shell.surface
-                                    border.width: component.pendingAction === "shutdown" ? 0 : shell.borderWidth
-                                    border.color: shell.border
-
-                                    Text {
-                                        anchors.centerIn: parent
-                                        text: component.pendingAction === "shutdown"
-                                            ? "CONFIRM"
-                                            : "POWER"
-                                        color: component.pendingAction === "shutdown"
-                                            ? shell.ink
-                                            : shell.text
-                                        font.family: "JetBrainsMono Nerd Font"
-                                        font.pixelSize: Math.round(9 * shell.fontScale)
-                                        font.weight: Font.Black
-                                    }
-
-                                    MouseArea {
-                                        id: shutdownMouse
-                                        anchors.fill: parent
-                                        hoverEnabled: true
-                                        cursorShape: Qt.PointingHandCursor
-                                        onClicked: component.requestAction("shutdown")
+                                MouseArea {
+                                    id: lockMouse
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: {
+                                        component.closePanel()
+                                        Hyprland.dispatch("exec hyprlock")
                                     }
                                 }
                             }
-                        }
-                    }
 
-                    RowLayout {
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: 22
+                            Rectangle {
+                                Layout.fillWidth: true
+                                Layout.fillHeight: true
+                                radius: shell.controlRadius
+                                color: component.pendingAction === "logout"
+                                    ? shell.uiPalette[1]
+                                    : (logoutMouse.containsMouse ? shell.surfaceHover : shell.backgroundAlt)
 
-                        Rectangle {
-                            width: 8
-                            height: 8
-                            radius: shell.controlRadius
-                            color: component.networkOnline
-                                ? shell.uiPalette[3]
-                                : shell.uiPalette[0]
-                        }
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: component.pendingAction === "logout"
+                                        ? "CONFIRM"
+                                        : "󰍃  LOG OUT"
+                                    color: component.pendingAction === "logout" ? shell.ink : shell.text
+                                    font.family: "JetBrainsMono Nerd Font"
+                                    font.pixelSize: Math.round(9 * shell.fontScale)
+                                    font.weight: Font.Black
+                                }
 
-                        Text {
-                            text: component.networkOnline
-                                ? "SYSTEM LINK ONLINE"
-                                : "SYSTEM LINK LIMITED"
-                            color: shell.muted
-                            font.family: "JetBrainsMono Nerd Font"
-                            font.pixelSize: Math.round(8 * shell.fontScale)
-                            font.weight: Font.Black
-                            font.letterSpacing: 1.1
-                        }
+                                MouseArea {
+                                    id: logoutMouse
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: component.requestAction("logout")
+                                }
+                            }
 
-                        Item { Layout.fillWidth: true }
+                            Rectangle {
+                                Layout.fillWidth: true
+                                Layout.fillHeight: true
+                                radius: shell.controlRadius
+                                color: component.pendingAction === "reboot"
+                                    ? shell.uiPalette[2]
+                                    : (rebootMouse.containsMouse ? shell.surfaceHover : shell.backgroundAlt)
 
-                        Text {
-                            text: "CLICK OUTSIDE TO CLOSE"
-                            color: shell.dim
-                            font.family: "JetBrainsMono Nerd Font"
-                            font.pixelSize: Math.round(7 * shell.fontScale)
-                            font.weight: Font.Bold
-                            font.letterSpacing: 1
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: component.pendingAction === "reboot"
+                                        ? "CONFIRM"
+                                        : "󰜉  RESTART"
+                                    color: component.pendingAction === "reboot" ? shell.ink : shell.text
+                                    font.family: "JetBrainsMono Nerd Font"
+                                    font.pixelSize: Math.round(9 * shell.fontScale)
+                                    font.weight: Font.Black
+                                }
+
+                                MouseArea {
+                                    id: rebootMouse
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: component.requestAction("reboot")
+                                }
+                            }
+
+                            Rectangle {
+                                Layout.fillWidth: true
+                                Layout.fillHeight: true
+                                radius: shell.controlRadius
+                                color: component.pendingAction === "shutdown"
+                                    ? shell.error
+                                    : (shutdownMouse.containsMouse ? shell.surfaceHover : shell.backgroundAlt)
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: component.pendingAction === "shutdown"
+                                        ? "CONFIRM"
+                                        : "󰐥  POWER"
+                                    color: component.pendingAction === "shutdown" ? shell.ink : shell.text
+                                    font.family: "JetBrainsMono Nerd Font"
+                                    font.pixelSize: Math.round(9 * shell.fontScale)
+                                    font.weight: Font.Black
+                                }
+
+                                MouseArea {
+                                    id: shutdownMouse
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: component.requestAction("shutdown")
+                                }
+                            }
                         }
                     }
                 }

@@ -11,6 +11,13 @@ required_files=(
     preview.sh
     SettingsStore.qml
     DistroInfo.qml
+    assets/branding/chroma-logo.svg
+    assets/branding/chroma-mark.png
+    assets/branding/chroma-wordmark.svg
+    assets/wallpapers/voltage-bloom.webp
+    assets/wallpapers/matrix-signal.webp
+    assets/wallpapers/moonlit-circuit.webp
+    assets/wallpapers/sunlight-paper.webp
     desktop/WidgetStore.qml
     desktop/DesktopWidgets.qml
     desktop/WidgetFrame.qml
@@ -155,6 +162,16 @@ grep -Fq 'shell.barBackgroundMode === "SOLID"' ChromaBar.qml
 grep -Fq 'property string barBackgroundMode: "TRANSPARENT"' SettingsStore.qml
 grep -Fq 'label: "Bar background"' settings/pages/ShellPage.qml
 grep -Fq "hypr::emit_binding 'SUPER SHIFT' 'V'" installer/lib/hyprland.sh
+
+
+grep -Fq 'name: "MATRIX"' StateStore.qml
+grep -Fq 'name: "MOONLIGHT"' StateStore.qml
+grep -Fq 'name: "SUNLIGHT"' StateStore.qml
+grep -Fq 'name: "MONO DARK"' StateStore.qml
+grep -Fq 'name: "MONO LIGHT"' StateStore.qml
+grep -Fq 'deploy::install_wallpapers' installer/lib/deploy.sh
+grep -Fq 'assets/branding/chroma-logo.svg' SettingsWindow.qml
+grep -Fq 'text: "CHROMA // CONTROL"' ControlCentre.qml
 
 ./bin/chroma --version >/dev/null
 ./bin/chroma --help >/dev/null

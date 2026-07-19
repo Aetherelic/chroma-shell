@@ -48,8 +48,8 @@ Scope {
             Rectangle {
                 id: panel
 
-                width: 920
-                height: 466
+                width: Math.min(1080, themeWindow.width - 64)
+                height: Math.min(610, themeWindow.height - shell.barHeight - 54)
 
                 anchors {
                     horizontalCenter: parent.horizontalCenter
@@ -63,11 +63,11 @@ Scope {
                             : undefined
                     topMargin:
                         shell.barPosition === "TOP"
-                            ? shell.barHeight + 24
+                            ? shell.barHeight + 22
                             : 0
                     bottomMargin:
                         shell.barPosition === "BOTTOM"
-                            ? shell.barHeight + 21
+                            ? shell.barHeight + 22
                             : 0
                 }
 
@@ -107,58 +107,54 @@ Scope {
                         leftMargin: 18
                         rightMargin: 18
                     }
-                    spacing: 14
+                    spacing: 12
 
                     RowLayout {
                         Layout.fillWidth: true
+                        Layout.preferredHeight: 42
 
-                        ColumnLayout {
-                            spacing: 1
-
-                            Text {
-                                text: "CHROMA//PALETTE LIBRARY"
-                                color: shell.textStrong
-                                font.family: "JetBrainsMono Nerd Font"
-                                font.pixelSize: Math.round(16 * shell.fontScale)
-                                font.weight: Font.Black
-                                font.letterSpacing: 1
-                            }
-
-                            Text {
-                                text: shell.themeCount
-                                    + " CURATED SYSTEM THEMES // "
-                                    + shell.themeName
-                                color: shell.uiPalette[0]
-                                font.family: "JetBrainsMono Nerd Font"
-                                font.pixelSize: Math.round(8 * shell.fontScale)
-                                font.weight: Font.Black
-                                font.letterSpacing: 1.4
-                            }
+                        Text {
+                            Layout.fillWidth: true
+                            text: "CHROMA // THEMES"
+                            color: shell.textStrong
+                            font.family: "JetBrainsMono Nerd Font"
+                            font.pixelSize: Math.round(17 * shell.fontScale)
+                            font.weight: Font.Black
+                            font.letterSpacing: 0.7
                         }
 
-                        Item { Layout.fillWidth: true }
+                        Text {
+                            text: shell.themeName
+                            color: shell.uiPalette[0]
+                            font.family: "JetBrainsMono Nerd Font"
+                            font.pixelSize: Math.round(10 * shell.fontScale)
+                            font.weight: Font.Black
+                        }
 
-                        ColumnLayout {
-                            spacing: 2
+                        Rectangle {
+                            width: 40
+                            height: 40
+                            radius: shell.controlRadius
+                            color: closeMouse.containsMouse
+                                ? shell.uiPalette[0]
+                                : shell.surface
+                            border.width: closeMouse.containsMouse ? 0 : shell.borderWidth
+                            border.color: shell.border
 
                             Text {
-                                Layout.alignment: Qt.AlignRight
-                                text: "CLICK TO APPLY"
-                                color: shell.muted
-                                font.family: "JetBrainsMono Nerd Font"
-                                font.pixelSize: Math.round(7 * shell.fontScale)
-                                font.weight: Font.Bold
-                                font.letterSpacing: 1.2
+                                anchors.centerIn: parent
+                                text: "×"
+                                color: closeMouse.containsMouse ? shell.ink : shell.text
+                                font.pixelSize: Math.round(21 * shell.fontScale)
+                                font.weight: Font.Black
                             }
 
-                            Text {
-                                Layout.alignment: Qt.AlignRight
-                                text: "RIGHT-CLICK THE BAR TILE TO CYCLE"
-                                color: shell.dim
-                                font.family: "JetBrainsMono Nerd Font"
-                                font.pixelSize: Math.round(7 * shell.fontScale)
-                                font.weight: Font.Bold
-                                font.letterSpacing: 1
+                            MouseArea {
+                                id: closeMouse
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: shell.themePanelOpen = false
                             }
                         }
                     }
@@ -166,7 +162,7 @@ Scope {
                     GridLayout {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
-                        columns: 4
+                        columns: 5
                         rowSpacing: 8
                         columnSpacing: 8
 
@@ -177,21 +173,19 @@ Scope {
                                 id: themeCard
 
                                 required property int index
-
                                 property var theme: shell.themeAt(index)
-                                property bool selected:
-                                    shell.themeIndex === index
+                                property bool selected: shell.themeIndex === index
 
                                 Layout.fillWidth: true
                                 Layout.fillHeight: true
-                                Layout.minimumHeight: 82
+                                Layout.minimumHeight: 74
 
                                 color: selected
                                     ? theme.colours[0]
                                     : themeMouse.containsMouse
                                         ? theme.surfaceHover
                                         : theme.surface
-                                radius: shell.controlRadius
+                                radius: shell.cardRadius
                                 border.width: selected ? 0 : shell.borderWidth
                                 border.color: theme.border
 
@@ -204,39 +198,7 @@ Scope {
                                         fill: parent
                                         margins: 10
                                     }
-                                    spacing: 4
-
-                                    RowLayout {
-                                        Layout.fillWidth: true
-
-                                        Text {
-                                            text: (index + 1)
-                                                .toString()
-                                                .padStart(2, "0")
-                                            color: themeCard.selected
-                                                ? theme.ink
-                                                : theme.colours[0]
-                                            font.family:
-                                                "JetBrainsMono Nerd Font"
-                                            font.pixelSize: Math.round(8 * shell.fontScale)
-                                            font.weight: Font.Black
-                                        }
-
-                                        Item { Layout.fillWidth: true }
-
-                                        Text {
-                                            text: theme.family
-                                            color: themeCard.selected
-                                                ? theme.ink
-                                                : theme.muted
-                                            opacity: 0.76
-                                            font.family:
-                                                "JetBrainsMono Nerd Font"
-                                            font.pixelSize: Math.round(6 * shell.fontScale)
-                                            font.weight: Font.Bold
-                                            font.letterSpacing: 0.8
-                                        }
-                                    }
+                                    spacing: 6
 
                                     Text {
                                         Layout.fillWidth: true
@@ -244,25 +206,9 @@ Scope {
                                         color: themeCard.selected
                                             ? theme.ink
                                             : theme.text
-                                        font.family:
-                                            "JetBrainsMono Nerd Font"
+                                        font.family: "JetBrainsMono Nerd Font"
                                         font.pixelSize: Math.round(10 * shell.fontScale)
                                         font.weight: Font.Black
-                                        elide: Text.ElideRight
-                                    }
-
-                                    Text {
-                                        Layout.fillWidth: true
-                                        text: theme.description
-                                        color: themeCard.selected
-                                            ? theme.ink
-                                            : theme.muted
-                                        opacity: themeCard.selected ? 0.7 : 1
-                                        font.family:
-                                            "JetBrainsMono Nerd Font"
-                                        font.pixelSize: Math.round(6 * shell.fontScale)
-                                        font.weight: Font.Bold
-                                        font.letterSpacing: 0.6
                                         elide: Text.ElideRight
                                     }
 
@@ -272,20 +218,14 @@ Scope {
                                         spacing: 4
 
                                         Repeater {
-                                            model: themeCard.theme.spectrum.length
+                                            model: 5
 
                                             Rectangle {
                                                 required property int index
-                                                width: 16
-                                                height: 6
-                                                radius: shell.controlRadius
-                                                color: themeCard
-                                                    .theme
-                                                    .spectrum[index]
-                                                border.width:
-                                                    themeCard.selected ? 1 : 0
-                                                border.color:
-                                                    themeCard.theme.ink
+                                                width: 18
+                                                height: 7
+                                                radius: Math.min(shell.microRadius, 3)
+                                                color: themeCard.theme.colours[index]
                                             }
                                         }
                                     }
@@ -296,11 +236,7 @@ Scope {
                                     anchors.fill: parent
                                     hoverEnabled: true
                                     cursorShape: Qt.PointingHandCursor
-
-                                    onClicked: {
-                                        shell.applyTheme(themeCard.index)
-                                        shell.themePanelOpen = false
-                                    }
+                                    onClicked: shell.applyTheme(themeCard.index)
                                 }
                             }
                         }

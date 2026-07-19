@@ -103,7 +103,7 @@ Rectangle {
 
                 font.family: "JetBrainsMono Nerd Font"
                 font.pixelSize:
-                    Math.round(12 * shell.fontScale)
+                    Math.round(13 * shell.fontScale)
                 font.weight: Font.Black
                 font.letterSpacing: 1
             }

@@ -5,7 +5,8 @@ set -Eeuo pipefail
 home="${HOME:?HOME is not set}"
 config_root="${XDG_CONFIG_HOME:-$home/.config}/chroma-wallpaper"
 config_file="$config_root/config"
-default_directory="$home/Pictures/Wallpapers"
+default_directory="$home/Pictures/Wallpapers/CHROMA"
+test -d "$default_directory" || default_directory="$home/Pictures/Wallpapers"
 mkdir -p "$config_root"
 
 backend() {
