@@ -9,6 +9,10 @@ Scope {
 
     required property var shell
 
+    DistroInfo {
+        id: distroInfo
+    }
+
     Variants {
         model: Quickshell.screens
 
@@ -39,35 +43,71 @@ Scope {
             aboveWindows: true
             color: "transparent"
 
+            readonly property real leftClusterWidth:
+                shell.barHeight
+                + (shell.showWorkspaces
+                    ? shell.barGap + shell.workspaceRailWidth
+                    : 0)
+
+            readonly property int gapsBeforeMedia:
+                shell.showWorkspaces ? 3 : 2
+
+            readonly property real centeredMediaSpacerWidth:
+                shell.showMedia
+                    ? Math.max(
+                        0,
+                        (width - shell.mediaWidth) / 2
+                        - leftClusterWidth
+                        - gapsBeforeMedia * shell.barGap
+                    )
+                    : 12
+
+            Rectangle {
+                id: barBackdrop
+
+                anchors.fill: parent
+                visible: shell.barBackgroundMode === "SOLID"
+                z: 0
+
+                color: shell.backgroundAlt
+                radius: shell.moduleRadius
+                border.width: shell.borderWidth
+                border.color: shell.border
+
+                Behavior on color {
+                    ColorAnimation {
+                        duration: shell.animationDuration
+                    }
+                }
+            }
+
             RowLayout {
+                z: 1
                 anchors.fill: parent
                 spacing: shell.barGap
 
                 /*
-                 * IDENTITY
+                 * DISTRIBUTION LAUNCHER
                  */
                 Rectangle {
                     id: identityBlock
 
-                    Layout.preferredWidth:
-                        identityMouse.containsMouse
-                            ? shell.identityHoverWidth
-                            : shell.identityWidth
-
+                    Layout.preferredWidth: shell.barHeight
+                    Layout.minimumWidth: shell.barHeight
+                    Layout.maximumWidth: shell.barHeight
                     Layout.fillHeight: true
 
-                    color: identityMouse.containsMouse
-                        ? shell.uiPalette[4]
-                        : shell.uiPalette[0]
+                    color:
+                        identityMouse.containsMouse
+                            ? shell.uiPalette[4]
+                            : shell.uiPalette[0]
 
                     radius: shell.moduleRadius
-
-                    Behavior on Layout.preferredWidth {
-                        NumberAnimation {
-                            duration: Math.round(shell.animationDuration * 1.13)
-                            easing.type: Easing.OutCubic
-                        }
-                    }
+                    border.width:
+                        identityMouse.containsMouse
+                            ? 0
+                            : shell.borderWidth
+                    border.color: shell.border
 
                     Behavior on color {
                         ColorAnimation {
@@ -75,64 +115,31 @@ Scope {
                         }
                     }
 
-                    RowLayout {
-                        anchors {
-                            fill: parent
-                            leftMargin: shell.identityHorizontalPadding
-                            rightMargin: shell.identityHorizontalPadding
-                        }
+                    Text {
+                        id: distroLogo
 
-                        Column {
-                            Layout.alignment: Qt.AlignVCenter
-                            spacing: 0
+                        anchors.centerIn: parent
+                        text: distroInfo.glyph
+                        color: shell.ink
 
-                            Text {
-                                text: "CHROMA/04"
-                                color: shell.ink
+                        font.family: "JetBrainsMono Nerd Font"
+                        font.pixelSize: Math.round(
+                            shell.barHeight * 0.48
+                            * shell.iconScale
+                        )
+                        font.weight: Font.Black
 
-                                font.family:
-                                    "JetBrainsMono Nerd Font"
+                        scale:
+                            identityMouse.containsMouse
+                                ? 1.12
+                                : 1.0
 
-                                font.pixelSize: Math.round(17 * shell.fontScale)
-                                font.weight: Font.Black
-                                font.letterSpacing: 1
-                            }
-
-                            Text {
-                                text: "KINETIC EDITION"
-                                color: shell.ink
-                                opacity: 0.65
-
-                                font.family:
-                                    "JetBrainsMono Nerd Font"
-
-                                font.pixelSize: Math.round(8 * shell.fontScale)
-                                font.weight: Font.Bold
-                                font.letterSpacing: 1.6
-                            }
-                        }
-
-                        Item {
-                            Layout.fillWidth: true
-                        }
-
-                        Text {
-                            text: "↗"
-                            color: shell.ink
-
-                            font.pixelSize: Math.round(24 * shell.fontScale)
-                            font.weight: Font.Black
-
-                            rotation:
-                                identityMouse.containsMouse
-                                    ? 45
-                                    : 0
-
-                            Behavior on rotation {
-                                NumberAnimation {
-                                    duration: Math.round(shell.animationDuration * 1.2)
-                                    easing.type: Easing.OutBack
-                                }
+                        Behavior on scale {
+                            NumberAnimation {
+                                duration: Math.round(
+                                    shell.animationDuration * 1.1
+                                )
+                                easing.type: Easing.OutBack
                             }
                         }
                     }
@@ -331,8 +338,20 @@ Scope {
                 }
 
                 Item {
-                    Layout.fillWidth: true
-                    Layout.minimumWidth: 12
+                    id: mediaCenterSpacer
+
+                    readonly property real resolvedWidth:
+                        shell.showMedia
+                            ? barWindow.centeredMediaSpacerWidth
+                            : 12
+
+                    Layout.fillWidth: !shell.showMedia
+                    Layout.preferredWidth: resolvedWidth
+                    Layout.minimumWidth: resolvedWidth
+                    Layout.maximumWidth:
+                        shell.showMedia
+                            ? resolvedWidth
+                            : 16777215
                 }
 
                 /*

@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
+import Quickshell
 import "../components"
 
 Flickable {
@@ -82,20 +83,16 @@ Flickable {
                     }
                 }
 
-                Column {
+                Image {
+                    Layout.preferredWidth: 126
+                    Layout.preferredHeight: 126
                     Layout.alignment: Qt.AlignVCenter
-                    spacing: 7
-
-                    Repeater {
-                        model: shell.spectrumPalette
-                        Rectangle {
-                            required property var modelData
-                            width: 94
-                            height: 10
-                            color: modelData
-                            radius: shell.microRadius
-                        }
-                    }
+                    source: Quickshell.shellPath(
+                        "assets/branding/chroma-logo.svg"
+                    )
+                    sourceSize: Qt.size(252, 252)
+                    fillMode: Image.PreserveAspectFit
+                    smooth: true
                 }
             }
 

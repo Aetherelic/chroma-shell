@@ -31,6 +31,7 @@ Surfaces:
   chroma settings
   chroma theme-next
   chroma wallpaper [select|set FILE|current]
+  chroma widgets [edit|open|close|add TYPE|reset]
 
 Maintenance:
   chroma doctor [--json]
@@ -150,6 +151,19 @@ case "${1:-help}" in
     themes) ipc toggleThemes ;;
     settings) ipc toggleSettings ;;
     theme-next) ipc cycleTheme 1 ;;
+    widgets)
+        case "${2:-edit}" in
+            edit|toggle) ipc toggleWidgetEdit ;;
+            open) ipc openWidgetEdit ;;
+            close) ipc closeWidgetEdit ;;
+            add)
+                test -n "${3:-}" || { printf 'Usage: chroma widgets add {music|clock|system|cava}\n' >&2; exit 2; }
+                ipc addDesktopWidget "$3"
+                ;;
+            reset) ipc resetDesktopWidgets ;;
+            *) printf 'Usage: chroma widgets [edit|open|close|add TYPE|reset]\n' >&2; exit 2 ;;
+        esac
+        ;;
     wallpaper)
         shift
         test $# -gt 0 || set -- select

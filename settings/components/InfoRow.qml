@@ -18,7 +18,7 @@ RowLayout {
         text: row.label.toUpperCase()
         color: shell.muted
         font.family: "JetBrainsMono Nerd Font"
-        font.pixelSize: Math.round(8 * shell.fontScale)
+        font.pixelSize: Math.round(10 * shell.fontScale)
         font.weight: Font.Bold
         font.letterSpacing: 0.8
     }
@@ -28,7 +28,7 @@ RowLayout {
         text: row.value
         color: row.valueColor
         font.family: "JetBrainsMono Nerd Font"
-        font.pixelSize: Math.round(9 * shell.fontScale)
+        font.pixelSize: Math.round(10 * shell.fontScale)
         font.weight: Font.Bold
         elide: Text.ElideRight
         horizontalAlignment: Text.AlignRight

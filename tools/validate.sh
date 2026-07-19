@@ -10,6 +10,18 @@ required_files=(
     install.sh
     preview.sh
     SettingsStore.qml
+    DistroInfo.qml
+    assets/branding/chroma-logo.svg
+    assets/branding/chroma-mark.png
+    assets/branding/chroma-wordmark.svg
+    assets/wallpapers/voltage-bloom.webp
+    assets/wallpapers/matrix-signal.webp
+    assets/wallpapers/moonlit-circuit.webp
+    assets/wallpapers/sunlight-paper.webp
+    desktop/WidgetStore.qml
+    desktop/DesktopWidgets.qml
+    desktop/WidgetFrame.qml
+    backend/chroma-widget-stats
     backend/chroma-settingsctl
     bin/chroma
     bin/chroma-wallpaper
@@ -50,10 +62,15 @@ fi
 
 runtime_path_files=(
     SettingsStore.qml
+    desktop/WidgetStore.qml
+    desktop/DesktopWidgets.qml
+    desktop/WidgetFrame.qml
+    backend/chroma-widget-stats
     shell.qml
     preview.sh
     backend/chroma-settingsctl
     backend/chroma-clipboardctl
+    backend/chroma-widget-stats
 )
 
 if grep -nE '(\$HOME|\$home)/Projects/chroma-shell|/home/[^/]+/Projects/chroma-shell' \
@@ -138,7 +155,23 @@ else
 fi
 
 grep -Fq 'target: "chroma"' shell.qml
+grep -Fq 'path: "/etc/os-release"' DistroInfo.qml
+grep -Fq 'distroInfo.glyph' ChromaBar.qml
+grep -Fq 'centeredMediaSpacerWidth' ChromaBar.qml
+grep -Fq 'shell.barBackgroundMode === "SOLID"' ChromaBar.qml
+grep -Fq 'property string barBackgroundMode: "TRANSPARENT"' SettingsStore.qml
+grep -Fq 'label: "Bar background"' settings/pages/ShellPage.qml
 grep -Fq "hypr::emit_binding 'SUPER SHIFT' 'V'" installer/lib/hyprland.sh
+
+
+grep -Fq 'name: "MATRIX"' StateStore.qml
+grep -Fq 'name: "MOONLIGHT"' StateStore.qml
+grep -Fq 'name: "SUNLIGHT"' StateStore.qml
+grep -Fq 'name: "MONO DARK"' StateStore.qml
+grep -Fq 'name: "MONO LIGHT"' StateStore.qml
+grep -Fq 'deploy::install_wallpapers' installer/lib/deploy.sh
+grep -Fq 'assets/branding/chroma-logo.svg' SettingsWindow.qml
+grep -Fq 'text: "CHROMA // CONTROL"' ControlCentre.qml
 
 ./bin/chroma --version >/dev/null
 ./bin/chroma --help >/dev/null

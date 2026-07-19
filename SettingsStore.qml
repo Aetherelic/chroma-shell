@@ -34,6 +34,7 @@ Scope {
     // CHROMA/04 Style Studio
     property string stylePreset: "SHARP"
     property string colorTreatment: "FULL PALETTE"
+    property string barBackgroundMode: "TRANSPARENT"
     property string workspaceStyle: "BLOCKS"
     property int barHeight: 73
     property int outerMargin: 14
@@ -239,7 +240,7 @@ Scope {
         }
 
         settingsFile.setText(JSON.stringify({
-            version: 6,
+            version: 7,
             widgets: {
                 workspaces: showWorkspaces,
                 media: showMedia,
@@ -265,6 +266,7 @@ Scope {
             style: {
                 preset: stylePreset,
                 colorTreatment: colorTreatment,
+                barBackgroundMode: barBackgroundMode,
                 workspaceStyle: workspaceStyle,
                 barHeight: barHeight,
                 outerMargin: outerMargin,
@@ -333,6 +335,7 @@ Scope {
 
         applyStyleProfile("SHARP")
         colorTreatment = "FULL PALETTE"
+        barBackgroundMode = "TRANSPARENT"
 
         spectrumBars = 28
         spectrumSensitivity = 1.0
@@ -438,6 +441,11 @@ Scope {
             style.colorTreatment,
             ["FULL PALETTE", "ACCENT ONLY", "DUOTONE", "MONOCHROME", "SPECTRUM", "MUTED"],
             "FULL PALETTE"
+        )
+        barBackgroundMode = normaliseChoice(
+            style.barBackgroundMode,
+            ["TRANSPARENT", "SOLID"],
+            "TRANSPARENT"
         )
         workspaceStyle = normaliseChoice(
             style.workspaceStyle,

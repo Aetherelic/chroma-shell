@@ -14,9 +14,11 @@ deploy::paths() {
     CHROMA_CACHE_ROOT="$cache_home/chroma-shell"
     CHROMA_SETTINGS_ROOT="$config_home/chroma"
     CHROMA_METADATA="$data_home/chroma-installer/installed.json"
+    CHROMA_WALLPAPER_TARGET="$HOME/Pictures/Wallpapers/CHROMA"
 
     export CHROMA_INSTALL_ROOT CHROMA_CLI_PATH CHROMA_INSTALL_CONF \
-        CHROMA_STATE_ROOT CHROMA_CACHE_ROOT CHROMA_SETTINGS_ROOT CHROMA_METADATA
+        CHROMA_STATE_ROOT CHROMA_CACHE_ROOT CHROMA_SETTINGS_ROOT CHROMA_METADATA \
+        CHROMA_WALLPAPER_TARGET
 }
 
 deploy::validate_source() {
@@ -28,6 +30,8 @@ deploy::validate_source() {
         bin/chroma-wallpaper \
         installer/chroma-installer \
         installer/manifests/dependencies.json \
+        assets/branding/chroma-logo.svg \
+        assets/wallpapers/voltage-bloom.webp \
         VERSION
     do
         test -f "$source/$required" || {
@@ -62,6 +66,35 @@ deploy::copy_source() {
         | tar -C "$stage" -xf -
 }
 
+deploy::install_wallpapers() {
+    local source="$1" wallpaper target copied=0
+
+    test -d "$source/assets/wallpapers" || return 0
+
+    if test "${CHROMA_DRY_RUN:-0}" -eq 1; then
+        printf '  Wallpaper target: %s\n' "$CHROMA_WALLPAPER_TARGET"
+        return 0
+    fi
+
+    mkdir -p "$CHROMA_WALLPAPER_TARGET"
+
+    while IFS= read -r -d '' wallpaper; do
+        target="$CHROMA_WALLPAPER_TARGET/$(basename -- "$wallpaper")"
+        if ! test -e "$target"; then
+            install -m0644 "$wallpaper" "$target"
+            copied=$((copied + 1))
+        fi
+    done < <(
+        find "$source/assets/wallpapers" \
+            -maxdepth 1 \
+            -type f \
+            \( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.webp' \) \
+            -print0
+    )
+
+    ui::status ok 'Bundled wallpapers' "$copied copied"
+}
+
 deploy::install() {
     deploy::paths
     local source="$1" parent stage old
@@ -71,6 +104,7 @@ deploy::install() {
         printf '  Deploy source: %s\n' "$source"
         printf '  Install root: %s\n' "$CHROMA_INSTALL_ROOT"
         printf '  CLI:          %s\n' "$CHROMA_CLI_PATH"
+        printf '  Wallpapers:   %s\n' "$CHROMA_WALLPAPER_TARGET"
         return 0
     fi
 
@@ -102,6 +136,7 @@ deploy::install() {
     fi
     deploy::write_install_conf
     deploy::seed_settings
+    deploy::install_wallpapers "$CHROMA_INSTALL_ROOT"
     deploy::write_metadata
 }
 

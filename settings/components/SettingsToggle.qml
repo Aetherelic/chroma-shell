@@ -29,7 +29,7 @@ Item {
                 text: control.label.toUpperCase()
                 color: shell.text
                 font.family: "JetBrainsMono Nerd Font"
-                font.pixelSize: Math.round(10 * shell.fontScale)
+                font.pixelSize: Math.round(11 * shell.fontScale)
                 font.weight: Font.Black
                 font.letterSpacing: 0.8
                 elide: Text.ElideRight

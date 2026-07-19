@@ -12,15 +12,15 @@ Scope {
 
     property int pageIndex: 0
     property var pages: [
-        { index: "01", name: "Wi-Fi", detail: "NETWORK" },
-        { index: "02", name: "Bluetooth", detail: "DEVICES" },
-        { index: "03", name: "Display", detail: "OUTPUTS" },
-        { index: "04", name: "Widgets", detail: "COMPOSITION" },
-        { index: "05", name: "Applications", detail: "DEFAULTS" },
-        { index: "06", name: "Config", detail: "MAINTENANCE" },
-        { index: "07", name: "Shell Settings", detail: "CHROMA" },
-        { index: "08", name: "About System", detail: "DIAGNOSTICS" },
-        { index: "09", name: "Credits", detail: "PROJECT" }
+        { index: "01", name: "Wi-Fi" },
+        { index: "02", name: "Bluetooth" },
+        { index: "03", name: "Display" },
+        { index: "04", name: "Widgets" },
+        { index: "05", name: "Applications" },
+        { index: "06", name: "Config" },
+        { index: "07", name: "Shell Settings" },
+        { index: "08", name: "About System" },
+        { index: "09", name: "Credits" }
     ]
 
     readonly property list<Component> pageComponents: [
@@ -153,42 +153,34 @@ Scope {
                         spacing: 12
 
                         Rectangle {
-                            Layout.preferredWidth: 34
-                            Layout.preferredHeight: 34
-                            color: shell.uiPalette[0]
+                            Layout.preferredWidth: 38
+                            Layout.preferredHeight: 38
+                            color: shell.surfaceAlt
                             radius: shell.controlRadius
+                            border.width: shell.borderWidth
+                            border.color: shell.border
 
-                            Text {
+                            Image {
                                 anchors.centerIn: parent
-                                text: "C"
-                                color: shell.ink
-                                font.family: "JetBrainsMono Nerd Font"
-                                font.pixelSize: Math.round(17 * shell.fontScale)
-                                font.weight: Font.Black
+                                width: 28
+                                height: 28
+                                source: Quickshell.shellPath(
+                                    "assets/branding/chroma-logo.svg"
+                                )
+                                sourceSize: Qt.size(56, 56)
+                                fillMode: Image.PreserveAspectFit
+                                smooth: true
                             }
                         }
 
-                        ColumnLayout {
+                        Text {
                             Layout.fillWidth: true
-                            spacing: 1
-
-                            Text {
-                                text: "CHROMA//SETTINGS"
-                                color: shell.textStrong
-                                font.family: "JetBrainsMono Nerd Font"
-                                font.pixelSize: Math.round(16 * shell.fontScale)
-                                font.weight: Font.Black
-                                font.letterSpacing: 1
-                            }
-
-                            Text {
-                                text: "SYSTEM CONFIGURATION // " + shell.themeName
-                                color: shell.uiPalette[0]
-                                font.family: "JetBrainsMono Nerd Font"
-                                font.pixelSize: Math.round(7 * shell.fontScale)
-                                font.weight: Font.Black
-                                font.letterSpacing: 1.2
-                            }
+                            text: "CHROMA // SETTINGS"
+                            color: shell.textStrong
+                            font.family: "JetBrainsMono Nerd Font"
+                            font.pixelSize: Math.round(18 * shell.fontScale)
+                            font.weight: Font.Black
+                            font.letterSpacing: 0.7
                         }
 
                         Text {
@@ -231,7 +223,7 @@ Scope {
                     spacing: 0
 
                     Rectangle {
-                        Layout.preferredWidth: 236
+                        Layout.preferredWidth: 252
                         Layout.fillHeight: true
                         color: shell.backgroundAlt
                         border.width: shell.borderWidth
@@ -246,10 +238,10 @@ Scope {
 
                             Text {
                                 Layout.fillWidth: true
-                                text: "CONFIGURATION CHANNELS"
+                                text: "SETTINGS"
                                 color: shell.dim
                                 font.family: "JetBrainsMono Nerd Font"
-                                font.pixelSize: Math.round(7 * shell.fontScale)
+                                font.pixelSize: Math.round(9 * shell.fontScale)
                                 font.weight: Font.Black
                                 font.letterSpacing: 1.2
                             }
@@ -263,7 +255,7 @@ Scope {
                                     required property var modelData
 
                                     Layout.fillWidth: true
-                                    Layout.preferredHeight: 52
+                                    Layout.preferredHeight: 48
                                     color: component.pageIndex === index
                                         ? shell.uiPalette[index % shell.palette.length]
                                         : navMouse.containsMouse
@@ -306,23 +298,11 @@ Scope {
                                                     ? shell.ink
                                                     : shell.text
                                                 font.family: "JetBrainsMono Nerd Font"
-                                                font.pixelSize: Math.round(9 * shell.fontScale)
+                                                font.pixelSize: Math.round(11 * shell.fontScale)
                                                 font.weight: Font.Black
                                                 elide: Text.ElideRight
                                             }
 
-                                            Text {
-                                                Layout.fillWidth: true
-                                                text: navItem.modelData.detail
-                                                color: component.pageIndex === navItem.index
-                                                    ? shell.ink
-                                                    : shell.muted
-                                                opacity: 0.7
-                                                font.family: "JetBrainsMono Nerd Font"
-                                                font.pixelSize: Math.round(6 * shell.fontScale)
-                                                font.weight: Font.Bold
-                                                font.letterSpacing: 0.7
-                                            }
                                         }
 
                                         Text {
@@ -354,26 +334,16 @@ Scope {
                                 border.color: shell.border
                                 radius: shell.controlRadius
 
-                                Column {
+                                Image {
                                     anchors.centerIn: parent
-                                    spacing: 3
-
-                                    Text {
-                                        text: "CHROMA LINK ONLINE"
-                                        color: shell.success
-                                        font.family: "JetBrainsMono Nerd Font"
-                                        font.pixelSize: Math.round(7 * shell.fontScale)
-                                        font.weight: Font.Black
-                                        font.letterSpacing: 1
-                                    }
-
-                                    Text {
-                                        text: "SUPER + ,  //  ESC TO CLOSE"
-                                        color: shell.dim
-                                        font.family: "JetBrainsMono Nerd Font"
-                                        font.pixelSize: Math.round(6 * shell.fontScale)
-                                        font.weight: Font.Bold
-                                    }
+                                    width: 42
+                                    height: 42
+                                    source: Quickshell.shellPath(
+                                        "assets/branding/chroma-logo.svg"
+                                    )
+                                    sourceSize: Qt.size(84, 84)
+                                    fillMode: Image.PreserveAspectFit
+                                    smooth: true
                                 }
                             }
                         }
@@ -398,47 +368,9 @@ Scope {
                     }
                 }
 
-                Rectangle {
+                Item {
                     Layout.fillWidth: true
-                    Layout.preferredHeight: 30
-                    color: shell.surface
-                    border.width: shell.borderWidth
-                    border.color: shell.border
-
-                    RowLayout {
-                        anchors {
-                            fill: parent
-                            leftMargin: 14
-                            rightMargin: 14
-                        }
-
-                        Rectangle {
-                            width: 7
-                            height: 7
-                            color: shell.success
-                            radius: shell.controlRadius
-                        }
-
-                        Text {
-                            text: settings.ready ? "SETTINGS STORE READY" : "LOADING SETTINGS STORE"
-                            color: shell.muted
-                            font.family: "JetBrainsMono Nerd Font"
-                            font.pixelSize: Math.round(7 * shell.fontScale)
-                            font.weight: Font.Bold
-                            font.letterSpacing: 0.8
-                        }
-
-                        Item { Layout.fillWidth: true }
-
-                        Text {
-                            text: "CHROMA/04 STYLE + DISPLAY"
-                            color: shell.dim
-                            font.family: "JetBrainsMono Nerd Font"
-                            font.pixelSize: Math.round(7 * shell.fontScale)
-                            font.weight: Font.Bold
-                            font.letterSpacing: 0.8
-                        }
-                    }
+                    Layout.preferredHeight: 0
                 }
             }
         }

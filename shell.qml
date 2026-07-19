@@ -4,6 +4,7 @@ import Quickshell
 import Quickshell.Hyprland
 import Quickshell.Io
 import Quickshell.Services.Mpris
+import "desktop"
 
 ShellRoot {
     id: root
@@ -17,6 +18,8 @@ ShellRoot {
     property bool notificationCenterOpen: false
     property bool themePanelOpen: false
     property bool settingsOpen: false
+    readonly property var widgetManager: widgetStore
+    readonly property var systemStats: widgetStats
     property bool doNotDisturb: false
 
     property string themeName: "VOLTAGE"
@@ -62,6 +65,8 @@ ShellRoot {
 
     readonly property string stylePreset: settingsStore.stylePreset
     readonly property string colorTreatment: settingsStore.colorTreatment
+    readonly property string barBackgroundMode:
+        settingsStore.barBackgroundMode
     readonly property string workspaceStyle: settingsStore.workspaceStyle
     readonly property int borderWidth: styleTokens.borderWidth
     readonly property int panelRadius: styleTokens.panelRadius
@@ -193,6 +198,16 @@ ShellRoot {
 
     function cycleTheme(step) {
         stateStore.cycleTheme(step)
+    }
+
+    function screenFor(name) {
+        var screens = Quickshell.screens
+        for (var index = 0; index < screens.length; index++) {
+            if (screens[index].name === name) {
+                return screens[index]
+            }
+        }
+        return screens.length > 0 ? screens[0] : null
     }
 
     onLauncherOpenChanged: {
@@ -421,7 +436,9 @@ ShellRoot {
 
     AudioSpectrum {
         id: audioSpectrum
-        enabled: root.hasMedia && root.showSpectrum
+        enabled:
+            (root.hasMedia && root.showSpectrum)
+            || (widgetStore.ready && widgetStore.hasActiveType("cava"))
         barCount: root.spectrumBars
         sensitivity: root.spectrumSensitivity
         smoothing: root.spectrumSmoothing
@@ -435,6 +452,16 @@ ShellRoot {
     SettingsStore {
         id: settingsStore
         shell: root
+    }
+
+    WidgetStore {
+        id: widgetStore
+        shell: root
+    }
+
+    SystemStats {
+        id: widgetStats
+        enabled: widgetStore.ready && widgetStore.hasActiveType("system")
     }
 
     StyleTokens {
@@ -476,6 +503,11 @@ ShellRoot {
 
     ChromaBar {
         shell: root
+    }
+
+    DesktopWidgets {
+        shell: root
+        store: widgetStore
     }
 
     ChromaLauncher {
@@ -615,6 +647,26 @@ ShellRoot {
 
         function toggleSettings(): void {
             root.settingsOpen = !root.settingsOpen
+        }
+
+        function toggleWidgetEdit(): void {
+            widgetStore.editMode = !widgetStore.editMode
+        }
+
+        function openWidgetEdit(): void {
+            widgetStore.editMode = true
+        }
+
+        function closeWidgetEdit(): void {
+            widgetStore.editMode = false
+        }
+
+        function addDesktopWidget(type: string): void {
+            widgetStore.addWidget(type, widgetStore.activeMonitor)
+        }
+
+        function resetDesktopWidgets(): void {
+            widgetStore.resetMonitor(widgetStore.activeMonitor)
         }
 
         function cycleTheme(step: int): void {

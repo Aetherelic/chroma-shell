@@ -401,7 +401,316 @@ Scope {
                 "#a7c080", "#83c092", "#7fbbb3", "#d699b6",
                 "#e67e80", "#e69875", "#dbbc7f"
             ]
+        },
+        {
+            name: "MATRIX",
+            family: "CHROMA DARK",
+            description: "PHOSPHOR // BLACK // SIGNAL GREEN",
+            ink: "#031006",
+            background: "#020603",
+            backgroundAlt: "#050b06",
+            surface: "#08120a",
+            surfaceAlt: "#0d1d10",
+            surfaceHover: "#15301a",
+            border: "#1f4427",
+            borderStrong: "#2e6539",
+            text: "#d8ffe0",
+            textStrong: "#effff2",
+            muted: "#7dae86",
+            dim: "#507157",
+            success: "#6dff8a",
+            warning: "#d7ff68",
+            error: "#ff5f76",
+            colours: [
+                "#58ff7b", "#9dff72", "#d7ff68", "#5ce8a0",
+                "#47d8bc", "#64ad8b", "#8affc1"
+            ],
+            spectrum: [
+                "#2eff65", "#58ff7b", "#86ff91", "#b8ff77",
+                "#72e8a1", "#47d8bc", "#89ffd0"
+            ]
+        },
+        {
+            name: "MOONLIGHT",
+            family: "CHROMA DARK",
+            description: "NAVY // LAVENDER // COOL CYAN",
+            ink: "#090b18",
+            background: "#090d1f",
+            backgroundAlt: "#0d1229",
+            surface: "#141a34",
+            surfaceAlt: "#1d2544",
+            surfaceHover: "#29345c",
+            border: "#34436d",
+            borderStrong: "#4a5e91",
+            text: "#e8ebff",
+            textStrong: "#f7f8ff",
+            muted: "#9aa4cc",
+            dim: "#69749c",
+            success: "#79e6c1",
+            warning: "#f4d87a",
+            error: "#ff6f9d",
+            colours: [
+                "#ff6f9d", "#f0a36f", "#f4d87a", "#79e6c1",
+                "#62d7ff", "#8793ff", "#bd83ff"
+            ],
+            spectrum: [
+                "#62d7ff", "#8793ff", "#bd83ff", "#ff6f9d",
+                "#f0a36f", "#f4d87a", "#79e6c1"
+            ]
+        },
+        {
+            name: "EMBER",
+            family: "CHROMA DARK",
+            description: "CHARCOAL // COPPER // CREAM",
+            ink: "#140b07",
+            background: "#120d0b",
+            backgroundAlt: "#19120f",
+            surface: "#241914",
+            surfaceAlt: "#33231b",
+            surfaceHover: "#493125",
+            border: "#5a3d2d",
+            borderStrong: "#78523a",
+            text: "#f8eadc",
+            textStrong: "#fff7ee",
+            muted: "#b49d8b",
+            dim: "#816f61",
+            success: "#b5d98d",
+            warning: "#f6c66b",
+            error: "#f36c5b",
+            colours: [
+                "#f36c5b", "#ef8b4a", "#f6c66b", "#b5d98d",
+                "#76b8c4", "#aa82c9", "#d9769c"
+            ],
+            spectrum: [
+                "#f6c66b", "#ef8b4a", "#f36c5b", "#d9769c",
+                "#aa82c9", "#76b8c4", "#b5d98d"
+            ]
+        },
+        {
+            name: "AURORA",
+            family: "CHROMA DARK",
+            description: "TEAL // VIOLET // PINK // MINT",
+            ink: "#061012",
+            background: "#071116",
+            backgroundAlt: "#0b171e",
+            surface: "#10222a",
+            surfaceAlt: "#18323b",
+            surfaceHover: "#234650",
+            border: "#2d5963",
+            borderStrong: "#3c7580",
+            text: "#eaffff",
+            textStrong: "#f6ffff",
+            muted: "#8fb7bd",
+            dim: "#63838a",
+            success: "#57f0bd",
+            warning: "#f4e66b",
+            error: "#ff5c91",
+            colours: [
+                "#ff5c91", "#ff9364", "#f4e66b", "#57f0bd",
+                "#42d8f5", "#8b78ff", "#d45cff"
+            ],
+            spectrum: [
+                "#57f0bd", "#42d8f5", "#8b78ff", "#d45cff",
+                "#ff5c91", "#ff9364", "#f4e66b"
+            ]
+        },
+        {
+            name: "MIDNIGHT SIGNAL",
+            family: "CHROMA DARK",
+            description: "DEEP BLUE // SIGNAL RED // ICE",
+            ink: "#070b16",
+            background: "#050916",
+            backgroundAlt: "#090f20",
+            surface: "#0f1830",
+            surfaceAlt: "#172443",
+            surfaceHover: "#21325a",
+            border: "#2a3f6c",
+            borderStrong: "#3b568d",
+            text: "#e6efff",
+            textStrong: "#f5f9ff",
+            muted: "#8fa1c4",
+            dim: "#607293",
+            success: "#67e3c1",
+            warning: "#f1d56a",
+            error: "#ff5472",
+            colours: [
+                "#ff5472", "#ff8b55", "#f1d56a", "#67e3c1",
+                "#4ac9ff", "#6688ff", "#aa6fff"
+            ],
+            spectrum: [
+                "#4ac9ff", "#6688ff", "#aa6fff", "#ff5472",
+                "#ff8b55", "#f1d56a", "#67e3c1"
+            ]
+        },
+        {
+            name: "SUNLIGHT",
+            family: "CHROMA LIGHT",
+            description: "IVORY // AMBER // CORAL // SKY",
+            ink: "#24180e",
+            background: "#fff8e9",
+            backgroundAlt: "#f8ecd4",
+            surface: "#fffdf7",
+            surfaceAlt: "#f0dfbf",
+            surfaceHover: "#ead3ad",
+            border: "#d6bd94",
+            borderStrong: "#b99b6e",
+            text: "#35291d",
+            textStrong: "#21170e",
+            muted: "#756653",
+            dim: "#9b8970",
+            success: "#2b9d70",
+            warning: "#c98216",
+            error: "#d94d5e",
+            colours: [
+                "#e85568", "#ee8b32", "#d7a817", "#2ba879",
+                "#278dc1", "#7167d8", "#b652b1"
+            ],
+            spectrum: [
+                "#2ba879", "#278dc1", "#7167d8", "#b652b1",
+                "#e85568", "#ee8b32", "#d7a817"
+            ]
+        },
+        {
+            name: "PAPERWAVE",
+            family: "CHROMA LIGHT",
+            description: "PAPER // MUTED RGB // GRAPHITE",
+            ink: "#18191c",
+            background: "#f2f0eb",
+            backgroundAlt: "#e7e4dd",
+            surface: "#faf9f6",
+            surfaceAlt: "#ddd9d0",
+            surfaceHover: "#d1ccc1",
+            border: "#bbb5aa",
+            borderStrong: "#928b80",
+            text: "#2e3036",
+            textStrong: "#17191e",
+            muted: "#6d6f74",
+            dim: "#929397",
+            success: "#3a956e",
+            warning: "#b8842e",
+            error: "#c95267",
+            colours: [
+                "#c95267", "#d27c4d", "#b99a38", "#3a956e",
+                "#3a85a9", "#6d68b5", "#a5539c"
+            ],
+            spectrum: [
+                "#3a956e", "#3a85a9", "#6d68b5", "#a5539c",
+                "#c95267", "#d27c4d", "#b99a38"
+            ]
+        },
+        {
+            name: "GLACIER",
+            family: "CHROMA LIGHT",
+            description: "COOL WHITE // SLATE // ICE CYAN",
+            ink: "#101820",
+            background: "#eef6f8",
+            backgroundAlt: "#e1edf0",
+            surface: "#f9fdfe",
+            surfaceAlt: "#d5e5e9",
+            surfaceHover: "#c6dce1",
+            border: "#a9c4cb",
+            borderStrong: "#7eabb5",
+            text: "#263841",
+            textStrong: "#12242c",
+            muted: "#617b84",
+            dim: "#8ba1a8",
+            success: "#2d9e84",
+            warning: "#bd8c2d",
+            error: "#cf566e",
+            colours: [
+                "#cf566e", "#d47d4e", "#bd9b35", "#2d9e84",
+                "#238fb7", "#6279c9", "#9a5eb8"
+            ],
+            spectrum: [
+                "#2d9e84", "#238fb7", "#6279c9", "#9a5eb8",
+                "#cf566e", "#d47d4e", "#bd9b35"
+            ]
+        },
+        {
+            name: "SAKURA DAY",
+            family: "CHROMA LIGHT",
+            description: "CREAM // ROSE // PLUM",
+            ink: "#24151d",
+            background: "#fff4f1",
+            backgroundAlt: "#f5e4e1",
+            surface: "#fffaf8",
+            surfaceAlt: "#edd6d5",
+            surfaceHover: "#e3c6c8",
+            border: "#cda9ae",
+            borderStrong: "#ad818a",
+            text: "#432d36",
+            textStrong: "#28171f",
+            muted: "#846a73",
+            dim: "#a58d94",
+            success: "#3d9877",
+            warning: "#bd832e",
+            error: "#d84f78",
+            colours: [
+                "#d84f78", "#df765a", "#c79b42", "#3d9877",
+                "#448fab", "#756ac1", "#a84f99"
+            ],
+            spectrum: [
+                "#3d9877", "#448fab", "#756ac1", "#a84f99",
+                "#d84f78", "#df765a", "#c79b42"
+            ]
+        },
+        {
+            name: "MONO DARK",
+            family: "MONOCHROME",
+            description: "BLACK // GRAPHITE // WHITE",
+            ink: "#050505",
+            background: "#050505",
+            backgroundAlt: "#0b0b0b",
+            surface: "#141414",
+            surfaceAlt: "#202020",
+            surfaceHover: "#303030",
+            border: "#3d3d3d",
+            borderStrong: "#575757",
+            text: "#dddddd",
+            textStrong: "#ffffff",
+            muted: "#9a9a9a",
+            dim: "#707070",
+            success: "#c7c7c7",
+            warning: "#e7e7e7",
+            error: "#b8b8b8",
+            colours: [
+                "#f2f2f2", "#d8d8d8", "#bebebe", "#a4a4a4",
+                "#8a8a8a", "#707070", "#565656"
+            ],
+            spectrum: [
+                "#565656", "#707070", "#8a8a8a", "#a4a4a4",
+                "#bebebe", "#d8d8d8", "#f2f2f2"
+            ]
+        },
+        {
+            name: "MONO LIGHT",
+            family: "MONOCHROME",
+            description: "WHITE // SILVER // BLACK",
+            ink: "#111111",
+            background: "#f3f3f3",
+            backgroundAlt: "#e8e8e8",
+            surface: "#ffffff",
+            surfaceAlt: "#dcdcdc",
+            surfaceHover: "#cdcdcd",
+            border: "#b7b7b7",
+            borderStrong: "#8b8b8b",
+            text: "#333333",
+            textStrong: "#111111",
+            muted: "#686868",
+            dim: "#929292",
+            success: "#444444",
+            warning: "#2f2f2f",
+            error: "#555555",
+            colours: [
+                "#111111", "#333333", "#555555", "#777777",
+                "#999999", "#bbbbbb", "#dddddd"
+            ],
+            spectrum: [
+                "#dddddd", "#bbbbbb", "#999999", "#777777",
+                "#555555", "#333333", "#111111"
+            ]
         }
+
     ]
 
     property bool ready: false
